@@ -4,7 +4,7 @@
 
 First of all, huge thanks to **RM Scripts** for rework Illenium Appearance. This project is based on their original resource, with a complete UI overhaul, backend improvements, new features, performance optimizations, and quality-of-life additions by **Project07**.
 
-![image](https://github.com/PehesaraNimnad/illenium-appearance-v2/blob/f8c1602e047e1c01923183627dbd6873fd0340d9/appearance.PNG)
+![image](https://github.com/PehesaraNimnad/illenium-appearance/blob/babd095b8c013a7ce7530c65d7586729d15532e1/appearance.PNG)
 
 ---
 
