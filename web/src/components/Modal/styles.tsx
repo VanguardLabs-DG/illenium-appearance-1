@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import { vp } from '../../styles/scale';
 
 export const Wrapper = styled.div`
   width: 100vw;
@@ -12,60 +11,81 @@ export const Wrapper = styled.div`
   align-items: center;
   justify-content: center;
   user-select: none;
-  background: ${({ theme }) => `rgba(${theme.secondaryBackground || '16, 17, 19'}, 0.85)`};
-  z-index: 1000;
-  font-family: 'Nexa-Book', sans-serif;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 99999;
+  font-family: 'Montserrat', sans-serif;
+
+  & > div {
+    background: rgba(10, 10, 10, 0.95);
+    border: 1px solid rgba(230, 205, 0, 0.5);
+    border-radius: 5px;
+    padding: 2rem 2.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    max-width: 420px;
+    text-align: center;
+  }
 
   p {
-    font-size: ${vp(18)};
-    font-weight: 600;
-    color: ${({ theme }) => `rgb(${theme.fontColor || '193, 194, 197'})`};
-    margin-bottom: ${vp(8)};
-    font-family: 'Nexa-Book', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: 'Montserrat', sans-serif;
   }
 
   span {
-    font-size: ${vp(13)};
-    color: ${({ theme }) => `rgb(${theme.mutedTextColor || '144, 146, 150'})`};
-    margin-bottom: ${vp(28)};
-    font-family: 'Nexa-Book', sans-serif;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 1.5rem;
+    font-family: 'Montserrat', sans-serif;
+    line-height: 1.4;
   }
 `;
 
-/* Modal overlay + actions (accent-aware; default theme uses white accent on dark surfaces) */
 export const Buttons = styled.div`
   display: flex;
-  gap: ${vp(12)};
+  gap: 0.8rem;
+  width: 100%;
+  justify-content: center;
 
   button {
-    min-width: 100px;
-    padding: 8px 16px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 600;
+    min-width: 110px;
+    padding: 10px 18px;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.2s ease;
-    font-family: 'Nexa-Book', sans-serif;
+    font-family: 'Montserrat', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 
-    &:last-child {
-      background-color: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: ${({ theme }) => `rgb(${theme.fontColor || '193, 194, 197'})`};
+    /* Accept (first) */
+    &:first-child {
+      background-color: #e6cd00;
+      border: 1px solid #e6cd00;
+      color: #111111;
 
       &:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-        border-color: ${({ theme }) => `rgb(${theme.accentColor || '66, 140, 255'})`};
-        color: ${({ theme }) => `rgb(${theme.accentColor || '66, 140, 255'})`};
+        background-color: #ffea1e;
+        border-color: #ffea1e;
       }
     }
 
-    &:first-child {
-      background-color: ${({ theme }) => `rgba(${theme.accentColor || '66, 140, 255'}, 0.2)`};
-      border: 1px solid ${({ theme }) => `rgb(${theme.accentColor || '66, 140, 255'})`};
-      color: ${({ theme }) => `rgb(${theme.accentColor || '66, 140, 255'})`};
+    /* Decline / Cancel (last) */
+    &:last-child {
+      background-color: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
 
       &:hover {
-        background-color: ${({ theme }) => `rgba(${theme.accentColor || '66, 140, 255'}, 0.25)`};
+        background-color: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.4);
       }
     }
 

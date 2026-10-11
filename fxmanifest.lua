@@ -10,6 +10,7 @@ lua54 'yes'
 
 shared_scripts {
     '@ox_lib/init.lua',
+    '@vanguard_lib/init.lua',
     'locales/locales.lua',
     'locales/en.lua',
     'locales/ar.lua',
@@ -51,6 +52,7 @@ client_scripts {
     'client/common.lua',
     'client/defaults.lua',
     'client/client.lua',
+    'client/shops.lua',
     'client/blips.lua',
     'client/zones.lua',
     'client/outfits.lua',
@@ -61,7 +63,8 @@ client_scripts {
     'client/radial/radial.lua',
     'client/radial/*.lua',
     'client/management/management.lua',
-    'client/management/*.lua'
+    'client/management/*.lua',
+    'client/admin.lua'
 }
 
 server_scripts {
@@ -74,7 +77,8 @@ server_scripts {
     'server/framework/**/migrate.lua',
     'server/util.lua',
     'server/permissions.lua',
-    'server/server.lua'
+    'server/server.lua',
+    'server/admin.lua'
 }
 
 files {
@@ -86,7 +90,10 @@ files {
     'web/dist/assets/*.jpg',
     'web/dist/assets/*.jpeg',
     'web/dist/assets/*.svg',
-    'web/dist/assets/*.webp'
+    'web/dist/assets/*.webp',
+    'admin/index.html',
+    'admin/style.css',
+    'admin/app.js'
 }
 
 ui_page 'web/dist/index.html'

@@ -75,7 +75,7 @@ function InitAppearance()
     RestorePlayerStats()
 end
 
-AddEventHandler("onResourceStart", function(resource)
+AddEventHandler("onClientResourceStart", function(resource)
     if resource == GetCurrentResourceName() then
         InitAppearance()
     end
@@ -127,7 +127,7 @@ end
 
 function OpenShop(config, isPedMenu, shopType)
     lib.callback("illenium-appearance:server:hasMoney", false, function(hasMoney, money)
-        if not hasMoney and not isPedMenu then
+        if not hasMoney and not isPedMenu and (money and money > 0) then
             lib.notify({
                 title = "Cannot Enter Shop",
                 description = "Not enough cash. Need $" .. money,
@@ -156,7 +156,7 @@ function OpenShop(config, isPedMenu, shopType)
     end, shopType)
 end
 
-local function OpenClothingShop(isPedMenu)
+function OpenClothingShop(isPedMenu)
     local config = GetDefaultConfig()
     config.components = true
     config.props = true
@@ -581,7 +581,7 @@ function OpenMenu(isPedMenu, menuType, menuData)
         }
     }
     if menuType == "default" then
-        local header = string.format(_L("clothing.title"), Config.ClothingCost)
+        local header = (Config.ClothingCost and Config.ClothingCost > 0) and string.format(_L("clothing.title"), Config.ClothingCost) or _L("clothing.titleNoPrice")
         if isPedMenu then
             header = _L("clothing.titleNoPrice")
         end

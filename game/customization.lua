@@ -458,14 +458,10 @@ end
 local playerCoords
 local function pedTurn(ped, angle)
     reverseCamera = not reverseCamera
-    local sequenceTaskId = OpenSequenceTask()
-    if sequenceTaskId then
-        TaskGoStraightToCoord(0, playerCoords.x, playerCoords.y, playerCoords.z, 8.0, -1, GetEntityHeading(ped) - angle, 0.1)
-        TaskStandStill(0, -1)
-        CloseSequenceTask(sequenceTaskId)
-        ClearPedTasks(ped)
-        TaskPerformSequence(ped, sequenceTaskId)
-        ClearSequenceTask(sequenceTaskId)
+    if DoesEntityExist(ped) then
+        local currentHeading = GetEntityHeading(ped)
+        local newHeading = (currentHeading - angle) % 360.0
+        SetEntityHeading(ped, newHeading)
     end
 end
 client.pedTurn = pedTurn
@@ -553,8 +549,51 @@ function client.startPlayerCustomization(cb, conf)
     SetNuiFocus(true, true)
     SetNuiFocusKeepInput(false)
     RenderScriptCams(true, false, 0, true, true)
-    SetEntityInvincible(cache.ped, Config.InvincibleDuringCustomization)
+
+    -- Protection: Freeze and lock player state so outsiders cannot push or damage
+    FreezeEntityPosition(cache.ped, true)
+    SetEntityInvincible(cache.ped, true)
+    SetPedCanRagdoll(cache.ped, false)
+    SetBlockingOfNonTemporaryEvents(cache.ped, true)
+    SetEntityCanBeDamaged(cache.ped, false)
+    SetEntityProofs(cache.ped, true, true, true, true, true, true, true, true)
     TaskStandStill(cache.ped, -1)
+    LocalPlayer.state:set("inAppearance", true, false)
+
+    -- Dedicated Protection Thread
+    CreateThread(function()
+        while LocalPlayer.state.inAppearance do
+            local myPed = cache.ped or PlayerPedId()
+
+            -- Keep position anchored & immune
+            FreezeEntityPosition(myPed, true)
+            SetPedCanRagdoll(myPed, false)
+            SetBlockingOfNonTemporaryEvents(myPed, true)
+            SetEntityCanBeDamaged(myPed, false)
+            SetEntityProofs(myPed, true, true, true, true, true, true, true, true)
+
+            -- Ghosting: hide other players and their vehicles LOCALLY for this player only
+            local activePlayers = GetActivePlayers()
+            for i = 1, #activePlayers do
+                local otherPlayer = activePlayers[i]
+                local otherPed = GetPlayerPed(otherPlayer)
+                if otherPed and otherPed ~= myPed and DoesEntityExist(otherPed) then
+                    SetEntityLocallyInvisible(otherPed)
+                    SetEntityNoCollisionEntity(myPed, otherPed, false)
+                    SetEntityNoCollisionEntity(otherPed, myPed, false)
+
+                    local otherVeh = GetVehiclePedIsIn(otherPed, false)
+                    if otherVeh ~= 0 and DoesEntityExist(otherVeh) then
+                        SetEntityLocallyInvisible(otherVeh)
+                        SetEntityNoCollisionEntity(myPed, otherVeh, false)
+                        SetEntityNoCollisionEntity(otherVeh, myPed, false)
+                    end
+                end
+            end
+
+            Wait(0)
+        end
+    end)
 
     if Config.HideRadar then DisplayRadar(false) end
     if Config.HideHud then DisplayHud(false) end
@@ -572,11 +611,18 @@ function client.exitPlayerCustomization(appearance)
     RenderScriptCams(false, false, 0, true, true)
     DestroyCam(cameraHandle, false)
     SetNuiFocus(false, false)
+    LocalPlayer.state:set("inAppearance", false, false)
 
     if Config.HideRadar then DisplayRadar(true) end
     if Config.HideHud then DisplayHud(true) end
 
+    -- Restore player physical states & controls
+    FreezeEntityPosition(cache.ped, false)
     ClearPedTasksImmediately(cache.ped)
+    SetPedCanRagdoll(cache.ped, true)
+    SetBlockingOfNonTemporaryEvents(cache.ped, false)
+    SetEntityCanBeDamaged(cache.ped, true)
+    SetEntityProofs(cache.ped, false, false, false, false, false, false, false, false)
     SetEntityInvincible(cache.ped, false)
 
     SendNuiMessage(json.encode({
@@ -611,10 +657,16 @@ AddEventHandler("onResourceStop", function(resource)
     if resource == GetCurrentResourceName() then
         SetNuiFocus(false, false)
         SetNuiFocusKeepInput(false)
-        -- Make sure a restart/crash mid-menu never leaves the player stuck
-        -- with a hidden radar/HUD.
         DisplayRadar(true)
         DisplayHud(true)
+        if DoesEntityExist(cache.ped) then
+            FreezeEntityPosition(cache.ped, false)
+            SetPedCanRagdoll(cache.ped, true)
+            SetBlockingOfNonTemporaryEvents(cache.ped, false)
+            SetEntityCanBeDamaged(cache.ped, true)
+            SetEntityProofs(cache.ped, false, false, false, false, false, false, false, false)
+            SetEntityInvincible(cache.ped, false)
+        end
     end
 end)
 

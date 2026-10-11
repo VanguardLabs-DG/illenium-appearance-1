@@ -1,7 +1,28 @@
 Config.Theme = {
-    currentTheme = "illenium",
+    currentTheme = "gusta",
     themes = {
-        -- ox_lib / rm-style: dark flat panels, #444-ish borders, white accent (NUI default theme matches)
+        {
+            id = "gusta",
+            borderRadius = "5px",
+            fontColor = "255, 255, 255",
+            fontColorHover = "255, 255, 255",
+            fontColorSelected = "17, 17, 17",
+            fontFamily = "'Montserrat', sans-serif",
+            mutedTextColor = "200, 200, 200",
+            mutedTextColorSoft = "140, 140, 140",
+            primaryBackground = "10, 10, 10",
+            secondaryBackground = "0, 0, 0",
+            surfaceBackground = "22, 22, 22",
+            surfaceBackgroundAlt = "10, 10, 10",
+            primaryBackgroundSelected = "230, 205, 0",
+            borderColor = "230, 205, 0",
+            borderColorSoft = "230, 205, 0, 0.2",
+            accentColor = "230, 205, 0",
+            accentColorHover = "212, 188, 0",
+            scaleOnHover = false,
+            sectionFontWeight = "500",
+            smoothBackgroundTransition = false
+        },
         {
             id = "illenium",
             borderRadius = "8px",

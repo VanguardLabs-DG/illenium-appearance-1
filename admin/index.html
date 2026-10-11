@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Lojas & Aparência · Vanguard</title>
+  <link rel="stylesheet" href="https://cfx-nui-vanguard_lib/vendor/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="https://cfx-nui-vanguard_lib/vendor/css/vanguard-tokens.css">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <a href="#main-content" class="sr-only">Pular para o conteúdo principal</a>
+  <div class="app-layout">
+    <!-- Topbar / Header -->
+    <header class="top-toolbar">
+      <div class="top-toolbar__main">
+        <div class="top-toolbar__title-group">
+          <div class="title-icon">
+            <i class="fa-solid fa-shirt"></i>
+          </div>
+          <div class="top-toolbar__titles">
+            <div class="title-headline">
+              <h1>Lojas & Aparência</h1>
+              <div id="liveStatusBadge" class="status-badge status-badge--online">
+                <span class="status-dot"></span>
+                <span class="status-text">ONLINE</span>
+              </div>
+              <span id="revisionBadge" class="revision-tag" title="Hash de concorrência">rev: ...</span>
+            </div>
+            <p id="headerSubtitle" class="header-desc">
+              Schema skinshops sincronizado. As alterações de lojas e blips são refletidas instantaneamente em toda a cidade sem reiniciar o recurso.
+            </p>
+          </div>
+        </div>
+
+        <div class="top-toolbar__actions">
+          <button class="btn btn-secondary" id="btnSync" onclick="window.reconcileStores()" title="Re-lê a tabela do banco e sincroniza todos os jogadores conectados">
+            <i class="fa-solid fa-arrows-rotate"></i>
+            <span>Reconciliar agora</span>
+          </button>
+          <button class="btn btn-secondary" id="btnOpenTarget" onclick="window.openTargetModal()" title="Abrir menu de loja em um jogador online específico">
+            <i class="fa-solid fa-user-gear"></i>
+            <span>Abrir no Jogador</span>
+          </button>
+          <button class="btn btn-primary" id="btnCreate" onclick="window.openCreateModal()">
+            <i class="fa-solid fa-plus"></i>
+            <span>Nova Loja</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Controls & Search -->
+      <div class="controls-bar">
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" id="searchInput" class="search-input" placeholder="Buscar por ID, nome, categoria, permissão ou coordenadas...">
+          <button id="searchClear" class="search-clear" title="Limpar busca"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="filter-chips">
+          <button class="chip-btn active" data-filter="all">Todas (<span id="countAll">0</span>)</button>
+          <button class="chip-btn" data-filter="clothing">Roupas (<span id="countClothing">0</span>)</button>
+          <button class="chip-btn" data-filter="barber">Barbearias (<span id="countBarber">0</span>)</button>
+          <button class="chip-btn" data-filter="tattoo">Tatuagens (<span id="countTattoo">0</span>)</button>
+          <button class="chip-btn" data-filter="surgeon">Cirurgias (<span id="countSurgeon">0</span>)</button>
+          <button class="chip-btn" data-filter="blip-visible">No Mapa (<span id="countBlipVisible">0</span>)</button>
+          <button class="chip-btn" data-filter="blip-hidden">Ocultas (<span id="countBlipHidden">0</span>)</button>
+          <button class="chip-btn" data-filter="public">Públicas (<span id="countPublic">0</span>)</button>
+          <button class="chip-btn" data-filter="job">Facção / Trabalho (<span id="countJob">0</span>)</button>
+        </div>
+
+        <div class="view-toggles">
+          <button class="view-toggle-btn active" id="viewModeTable" onclick="window.setViewMode('table')" title="Visualização em Tabela">
+            <i class="fa-solid fa-table-list"></i>
+          </button>
+          <button class="view-toggle-btn" id="viewModeCards" onclick="window.setViewMode('cards')" title="Visualização em Grade">
+            <i class="fa-solid fa-grip"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="stores-scroll-container" id="main-content">
+      <!-- Table View -->
+      <div id="tableView" class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 80px;">ID</th>
+              <th style="width: 220px;">NOME DA LOJA</th>
+              <th style="width: 150px;">CATEGORIA</th>
+              <th style="width: 140px;">PERMISSÃO</th>
+              <th style="width: 130px;">MAPA / BLIP</th>
+              <th>COORDENADAS</th>
+              <th style="width: 170px; text-align: right;">AÇÕES</th>
+            </tr>
+          </thead>
+          <tbody id="storesTableBody">
+            <!-- Dynamically populated by app.js -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Cards Grid View -->
+      <div id="cardsView" class="cards-grid" style="display: none;">
+        <!-- Dynamically populated by app.js -->
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="empty-state" style="display: none;">
+        <i class="fa-solid fa-shirt empty-icon"></i>
+        <h3>Nenhuma loja encontrada</h3>
+        <p>Tente ajustar sua busca ou filtro ativo para visualizar as lojas cadastradas.</p>
+        <button class="btn btn-secondary" onclick="window.clearSearchAndFilters()">
+          <i class="fa-solid fa-filter-circle-xmark"></i>
+          <span>Limpar filtros</span>
+        </button>
+      </div>
+    </main>
+
+    <!-- Footer Stats Bar -->
+    <footer class="footer-bar">
+      <div class="footer-stats">
+        <span>Total: <strong id="footerTotal">0</strong> lojas</span>
+        <span class="sep">•</span>
+        <span>Visíveis no Mapa: <strong id="footerBlipCount">0</strong></span>
+        <span class="sep">•</span>
+        <span>Públicas: <strong id="footerPublicCount">0</strong></span>
+        <span class="sep">•</span>
+        <span>Restritas: <strong id="footerJobCount">0</strong></span>
+      </div>
+      <div class="footer-info">
+        <span>illenium-appearance · Vanguard Ecosystem</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Modal: Criar / Editar Loja -->
+  <div id="storeModal" class="modal-overlay" style="display: none;">
+    <div class="modal-box modal-box--md">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i class="fa-solid fa-store modal-title-icon" id="storeModalIcon"></i>
+          <h2 id="storeModalTitle">Nova Loja</h2>
+        </div>
+        <button class="modal-close-btn" onclick="window.closeStoreModal()" title="Fechar modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <form id="storeForm" onsubmit="window.saveStore(event)">
+          <input type="hidden" id="formStoreId" value="">
+
+          <div class="form-group">
+            <label for="formStoreName">Nome da Loja <span class="req">*</span></label>
+            <input type="text" id="formStoreName" class="form-input" placeholder="Ex: Binco Vespucci, Barbearia Sandy..." required maxlength="100">
+            <span class="form-hint">Rótulo visível na listagem, mapa e no prompt do jogador.</span>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="formStoreType">Categoria / Tipo <span class="req">*</span></label>
+              <select id="formStoreType" class="form-select" required>
+                <option value="clothing">Loja de Roupas</option>
+                <option value="barber">Barbearia</option>
+                <option value="tattoo">Estúdio de Tatuagem</option>
+                <option value="surgeon">Cirurgião Plástico</option>
+              </select>
+            </div>
+
+            <div class="form-group flex-1">
+              <label for="formStorePermission">Permissão / Trabalho (Opcional)</label>
+              <input type="text" id="formStorePermission" class="form-input" placeholder="Vazio = pública (ou ex: police, mec)" maxlength="100">
+              <span class="form-hint">Nome do job/gang. Deixe vazio para qualquer cidadão.</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="switch-label">
+              <input type="checkbox" id="formStoreShowBlip" class="switch-checkbox" checked>
+              <span class="switch-slider"></span>
+              <span class="switch-text">Exibir Blip (Ícone) no Radar e Mapa Global</span>
+            </label>
+          </div>
+
+          <!-- Coordenadas & Captura -->
+          <div class="coords-box">
+            <div class="coords-box__header">
+              <span class="coords-box__title"><i class="fa-solid fa-location-dot"></i> Coordenadas de Interação</span>
+              <button type="button" class="btn btn-sm btn-cyan" onclick="window.capturePosition()">
+                <i class="fa-solid fa-crosshairs"></i>
+                <span>Capturar Posição Atual (In-Game)</span>
+              </button>
+            </div>
+
+            <div class="coords-grid">
+              <div class="form-group">
+                <label for="formCoordX">X</label>
+                <input type="number" step="0.01" id="formCoordX" class="form-input" placeholder="0.00" required>
+              </div>
+              <div class="form-group">
+                <label for="formCoordY">Y</label>
+                <input type="number" step="0.01" id="formCoordY" class="form-input" placeholder="0.00" required>
+              </div>
+              <div class="form-group">
+                <label for="formCoordZ">Z</label>
+                <input type="number" step="0.01" id="formCoordZ" class="form-input" placeholder="0.00" required>
+              </div>
+              <div class="form-group">
+                <label for="formCoordH">Heading (Ângulo)</label>
+                <input type="number" step="0.1" id="formCoordH" class="form-input" placeholder="0.0" value="0.0">
+              </div>
+            </div>
+            <span class="form-hint">Ponto central onde o marcador dourado [E] aparecerá para interação.</span>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="window.closeStoreModal()">Cancelar</button>
+            <button type="submit" class="btn btn-primary" id="btnSaveStore">
+              <i class="fa-solid fa-check"></i>
+              <span>Salvar Loja</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Abrir no Jogador Online -->
+  <div id="targetModal" class="modal-overlay" style="display: none;">
+    <div class="modal-box modal-box--sm">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i class="fa-solid fa-user-gear modal-title-icon" style="color: var(--primary);"></i>
+          <h2>Abrir Loja em Jogador</h2>
+        </div>
+        <button class="modal-close-btn" onclick="window.closeTargetModal()" title="Fechar modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-desc">
+          Abra o menu de customização remotamente para um jogador online na cidade informando o seu Passaporte (ID) ou CitizenID.
+        </p>
+
+        <form id="targetForm" onsubmit="window.executeOpenForPlayer(event)">
+          <div class="form-group">
+            <label for="targetInput">Passaporte (ID) ou CitizenID <span class="req">*</span></label>
+            <input type="text" id="targetInput" class="form-input" placeholder="Ex: 1002, 1003, 1..." required autofocus>
+            <span class="form-hint">Busca direta no sistema de jogadores ativos do Distrito Paulista.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="targetShopType">Tipo de Menu / Loja <span class="req">*</span></label>
+            <select id="targetShopType" class="form-select" required>
+              <option value="clothing">Loja de Roupas</option>
+              <option value="barber">Barbearia</option>
+              <option value="tattoo">Estúdio de Tatuagem</option>
+              <option value="surgeon">Cirurgião Plástico</option>
+            </select>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="window.closeTargetModal()">Cancelar</button>
+            <button type="submit" class="btn btn-primary" id="btnConfirmOpenTarget">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i>
+              <span>Abrir no Jogador</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Confirmar Exclusão -->
+  <div id="deleteModal" class="modal-overlay" style="display: none;">
+    <div class="modal-box modal-box--sm">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <i class="fa-solid fa-triangle-exclamation modal-title-icon" style="color: var(--rose);"></i>
+          <h2>Excluir Loja</h2>
+        </div>
+        <button class="modal-close-btn" onclick="window.closeDeleteModal()" title="Fechar modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-desc" id="deleteConfirmMessage">
+          Tem certeza de que deseja excluir esta loja? Esta ação removerá o marcador e o blip para todos os jogadores imediatamente.
+        </p>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="window.closeDeleteModal()">Cancelar</button>
+          <button type="button" class="btn btn-danger" id="btnConfirmDelete" onclick="window.executeDeleteStore()">
+            <i class="fa-solid fa-trash"></i>
+            <span>Excluir Definitivamente</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- Scripts -->
+  <script src="./app.js"></script>
+</body>
+</html>

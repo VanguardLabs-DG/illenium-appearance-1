@@ -10,15 +10,19 @@ local Zones = {
 
 local function RemoveZones()
     for i = 1, #Zones.Store do
-        if Zones.Store[i]["remove"] then
+        if Zones.Store[i] and Zones.Store[i]["remove"] then
             Zones.Store[i]:remove()
         end
     end
     for i = 1, #Zones.ClothingRoom do
-        Zones.ClothingRoom[i]:remove()
+        if Zones.ClothingRoom[i] and Zones.ClothingRoom[i]["remove"] then
+            Zones.ClothingRoom[i]:remove()
+        end
     end
     for i = 1, #Zones.PlayerOutfitRoom do
-        Zones.PlayerOutfitRoom[i]:remove()
+        if Zones.PlayerOutfitRoom[i] and Zones.PlayerOutfitRoom[i]["remove"] then
+            Zones.PlayerOutfitRoom[i]:remove()
+        end
     end
 end
 
@@ -137,7 +141,7 @@ local function SetupPlayerOutfitRoomZones()
 end
 
 local function SetupZones()
-    SetupStoreZones()
+    -- Stores are now managed by client/shops.lua (Gusta blips & marker system)
     SetupClothingRoomZones()
     SetupPlayerOutfitRoomZones()
 end

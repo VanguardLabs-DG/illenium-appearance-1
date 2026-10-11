@@ -3,9 +3,15 @@ if not Framework.QBCore() then return end
 local QBCore = exports["qb-core"]:GetCoreObject()
 
 function Framework.GetPlayerID(src)
-    local Player = QBCore.Functions.GetPlayer(src)
-    if Player then
-        return Player.PlayerData.citizenid
+    if exports.qbx_core then
+        local p = exports.qbx_core:GetPlayer(src)
+        if p and p.PlayerData and p.PlayerData.citizenid then
+            return tostring(p.PlayerData.citizenid)
+        end
+    end
+    local Player = QBCore and QBCore.Functions and QBCore.Functions.GetPlayer(src)
+    if Player and Player.PlayerData then
+        return tostring(Player.PlayerData.citizenid)
     end
 end
 

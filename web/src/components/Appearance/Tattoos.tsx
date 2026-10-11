@@ -12,13 +12,25 @@ interface TattoosProps {
   handlePreviewTattoo: (value: Tattoo, opacity: number) => void;
   handleDeleteTattoo: (value: Tattoo) => void;
   handleClearTattoos: () => void;
+  activeZone?: string;
 }
 
-const Tattoos = ({ settings, data, storedData, handleApplyTattoo, handlePreviewTattoo, handleDeleteTattoo, handleClearTattoos }: TattoosProps) => {
+const Tattoos = ({
+  settings,
+  data,
+  storedData,
+  handleApplyTattoo,
+  handlePreviewTattoo,
+  handleDeleteTattoo,
+  handleClearTattoos,
+  activeZone
+}: TattoosProps) => {
   const { locales } = useNuiState();
 
   const { items } = settings;
-  const keys = Object.keys(items).filter(key => key !== 'ZONE_HAIR');
+  const keys = activeZone && items[activeZone] !== undefined
+    ? [activeZone]
+    : Object.keys(items).filter(key => key !== 'ZONE_HAIR');
 
   if (!locales) {
     return null;
@@ -27,24 +39,28 @@ const Tattoos = ({ settings, data, storedData, handleApplyTattoo, handlePreviewT
   return (
     <TattoosLayout>
       <TattoosScrollArea>
-        <TattoosTitle>{locales.tattoos.title}</TattoosTitle>
-        {keys.map(key => (
-          <TattoosZoneBlock key={key}>
-            <TattoosZoneLabel>{locales.tattoos.items[key]}</TattoosZoneLabel>
-            <SelectTattoo
-              handlePreviewTattoo={handlePreviewTattoo}
-              handleApplyTattoo={handleApplyTattoo}
-              handleDeleteTattoo={handleDeleteTattoo}
-              items={items[key]}
-              tattoosApplied={data[key] ?? null}
-              settings={settings}
-            />
-          </TattoosZoneBlock>
-        ))}
+        {!activeZone && <TattoosTitle>{locales.tattoos?.title || 'Tatuagens'}</TattoosTitle>}
+        {keys.map(key => {
+          const zoneItems = items[key] || [];
+          const zoneLabel = locales.tattoos?.items?.[key] || (key === 'ZONE_HAIR' ? 'Micropigmentação' : key);
+          return (
+            <TattoosZoneBlock key={key}>
+              {!activeZone && <TattoosZoneLabel>{zoneLabel}</TattoosZoneLabel>}
+              <SelectTattoo
+                handlePreviewTattoo={handlePreviewTattoo}
+                handleApplyTattoo={handleApplyTattoo}
+                handleDeleteTattoo={handleDeleteTattoo}
+                items={zoneItems}
+                tattoosApplied={data[key] ?? null}
+                settings={settings}
+              />
+            </TattoosZoneBlock>
+          );
+        })}
       </TattoosScrollArea>
       <TattoosBottomBar>
         <ActionButton variant="primary" onClick={() => handleClearTattoos()} style={{ width: '100%' }}>
-          {locales.tattoos.deleteAll}
+          {locales.tattoos?.deleteAll || 'Remover Todas as Tatuagens'}
         </ActionButton>
       </TattoosBottomBar>
     </TattoosLayout>

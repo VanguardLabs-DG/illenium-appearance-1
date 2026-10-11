@@ -1,20 +1,27 @@
+Target = {
+    IsOX = function()
+        return GetResourceState("ox_target") ~= "missing"
+    end,
+    IsQB = function()
+        return GetResourceState("qb-target") ~= "missing"
+    end,
+    IsTargetStarted = function()
+        return false
+    end,
+    AddTargetEntity = function() end,
+    RemoveZone = function() end,
+    AddBoxZone = function() end,
+    AddPolyZone = function() end
+}
+
 if not Config.UseTarget then return end
+if not Target.IsOX() and not Target.IsQB() then return end
 
 local TargetPeds = {
     Store = {},
     ClothingRoom = {},
     PlayerOutfitRoom = {}
 }
-
-Target = {}
-
-function Target.IsOX()
-    return GetResourceState("ox_target") ~= "missing"
-end
-
-function Target.IsQB()
-    return GetResourceState("qb-target") ~= "missing"
-end
 
 local function RemoveTargetPeds(peds)
     for i = 1, #peds, 1 do
@@ -23,13 +30,12 @@ local function RemoveTargetPeds(peds)
 end
 
 local function RemoveTargets()
-    if Config.EnablePedsForShops then
-        RemoveTargetPeds(TargetPeds.Store)
-    else
-        for k, v in pairs(Config.Stores) do
-            Target.RemoveZone(v.type .. k)
+    for _, ped in pairs(TargetPeds.Store) do
+        if DoesEntityExist(ped) then
+            DeletePed(ped)
         end
     end
+    TargetPeds.Store = {}
 
     if Config.EnablePedsForClothingRooms then
         RemoveTargetPeds(TargetPeds.ClothingRoom)
@@ -50,7 +56,7 @@ end
 
 AddEventHandler("onResourceStop", function(resource)
     if resource == GetCurrentResourceName() then
-        if Target.IsTargetStarted() then
+        if Target.IsTargetStarted and Target.IsTargetStarted() then
             RemoveTargets()
         end
     end
@@ -70,48 +76,11 @@ local function CreatePedAtCoords(pedModel, coords, scenario)
 end
 
 local function SetupStoreTarget(targetConfig, action, k, v)
-    local parameters = {
-        options = {{
-            type = "client",
-            action = action,
-            icon = targetConfig.icon,
-            label = targetConfig.label
-        }},
-        distance = targetConfig.distance,
-        rotation = v.rotation
-    }
-
-    if Config.EnablePedsForShops then
-        TargetPeds.Store[k] = CreatePedAtCoords(v.targetModel or targetConfig.model, v.coords, v.targetScenario or targetConfig.scenario)
-        Target.AddTargetEntity(TargetPeds.Store[k], parameters)
-    elseif v.usePoly then
-        Target.AddPolyZone(v.type .. k, v.points, parameters)
-    else
-        Target.AddBoxZone(v.type .. k, v.coords, v.size, parameters)
-    end
+    -- Desativado: Lojas utilizam exclusivamente blip e marcador no chão (sem peds e sem target)
 end
 
 local function SetupStoreTargets()
-    for k, v in pairs(Config.Stores) do
-        local targetConfig = Config.TargetConfig[v.type]
-        local action
-
-        if v.type == "barber" then
-            action = OpenBarberShop
-        elseif v.type == "clothing" then
-            action = function()
-                TriggerEvent("illenium-appearance:client:openClothingShopMenu")
-            end
-        elseif v.type == "tattoo" then
-            action = OpenTattooShop
-        elseif v.type == "surgeon" then
-            action = OpenSurgeonShop
-        end
-
-        if not (Config.RCoreTattoosCompatibility and v.type == "tattoo") then
-            SetupStoreTarget(targetConfig, action, k, v)
-        end
-    end
+    -- Desativado: Lojas utilizam exclusivamente blip e marcador no chão (sem peds e sem target)
 end
 
 local function SetupClothingRoomTargets()
@@ -180,13 +149,12 @@ local function SetupPlayerOutfitRoomTargets()
 end
 
 local function SetupTargets()
-    SetupStoreTargets()
     SetupClothingRoomTargets()
     SetupPlayerOutfitRoomTargets()
 end
 
 CreateThread(function()
-    if Config.UseTarget then
+    if Config.UseTarget and (Target.IsOX() or Target.IsQB()) then
         SetupTargets()
     end
 end)

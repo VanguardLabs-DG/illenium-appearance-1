@@ -36,33 +36,79 @@ import FaceFeatures from './FaceFeatures';
 import HeadOverlays from './HeadOverlays';
 import Components from './Components';
 import Props from './Props';
-import Options from './Options';
 import Modal from '../Modal';
 import Tattoos from './Tattoos';
-import Sidebar from './components/Sidebar';
-import BottomLeftCluster from './components/BottomLeftCluster';
-import TopLeftLogo from './components/TopLeftLogo';
-import Header from './components/Header';
+import GustaSidebar, { CategoryItem } from './components/GustaSidebar';
+import GustaBottomBar from './components/GustaBottomBar';
+import GustaSearchBox from './components/GustaSearchBox';
+import GustaCustomizationPopover from './components/GustaCustomizationPopover';
+import ThumbnailGrid from './components/ThumbnailGrid';
+import RangeInput from './components/RangeInput';
+import MosaicCategoryGrid from './components/MosaicCategoryGrid';
+import ClothStoreHeader from './components/ClothStoreHeader';
+import ClothStoreFooter from './components/ClothStoreFooter';
+import ItemSelectionView from './components/ItemSelectionView';
 import { LocaleCode } from './components/LocaleSwitcher';
 import { setThumbnailBatchSize } from '../../utils/thumbnails';
 import DevPanel, { type DevStore } from './components/DevPanel';
+import BarberStoreView from './components/BarberStoreView';
+import TattooStoreView from './components/TattooStoreView';
+
+import {
+  IconMask,
+  IconJackets,
+  IconShirt,
+  IconHands,
+  IconPants,
+  IconShoes,
+  IconBag,
+  IconArmor,
+  IconBadge,
+  IconNecklace,
+  IconHats,
+  IconGlasses,
+  IconEarrings,
+  IconWatch,
+  IconBracelet,
+  IconHair,
+  IconBeard,
+  IconEyebrows,
+  IconChestHair,
+  IconEyes,
+  IconMakeup,
+  IconSmile,
+  IconLipstick,
+  IconAgeing,
+  IconComplexion,
+  IconSundamage,
+  IconFreckles,
+  IconTorso,
+  IconCameraHead,
+  IconArm,
+  IconLeg,
+  IconMicropig,
+  IconParents,
+  IconFaceFeatures,
+  IconPed,
+} from './components/GustaIcons';
 
 import {
   Wrapper,
-  MainPanel,
-  UnifiedShell,
-  ContentPanel,
-  Container,
-  BottomToolDock,
-  DockDivider,
-  ToolDockHeading,
-  DockControlsRow,
-  CameraButtons,
-  CameraButton,
-  RotateKeyRow,
-  RotateHintCol,
+  ClothStoreFloatingCard,
+  ClothStoreBody,
+  GustaDrawer,
+  GustaContentWrapper,
+  GustaWorkArea,
+  GustaContentColumn,
+  GustaScrollArea,
+  GustaHeader,
+  GustaTitle,
+  GustaDomainTabs,
+  GustaDomainTab,
+  GustaCategoryHeader,
+  GustaCategoryTitle,
+  GustaFloatingPopoverWrapper,
 } from './styles';
-import { User, Shirt, Footprints } from 'lucide-react';
 
 const isDev = !import.meta.env.PROD;
 
@@ -175,6 +221,7 @@ if (isDev) {
   mock('appearance_change_prop', () => SETTINGS_INITIAL_STATE.props);
   mock('appearance_set_camera', () => 1);
   mock('appearance_rotate_ped', () => 1);
+  mock('appearance_set_heading', () => 1);
   mock('get_theme_configuration', () => ({ ...defaultAppearanceTheme }));
 }
 
@@ -224,6 +271,10 @@ const DEV_STORE_HEADERS: Record<DevStore, { title: string; subtitle: string }> =
 };
 
 const Appearance = () => {
+  const { display, setDisplay, locales, setLocales } = useNuiState();
+  const isDragging = useRef(false);
+  const lastMouseX = useRef(0);
+
   // In dev mode, initialize with mock data immediately
   const [config, setConfig] = useState<CustomizationConfig | undefined>(
     isDev ? DEV_CONFIG as CustomizationConfig : undefined
@@ -251,49 +302,114 @@ const Appearance = () => {
   const [activeCamera, setActiveCamera] = useState<string>('default');
   const [currentLocale, setCurrentLocale] = useState<LocaleCode>('en');
 
-  // Mouse drag rotation state
-  const isDragging = useRef(false);
-  const lastMouseX = useRef(0);
+  // Gusta Appearance state
+  const [activeDomain, setActiveDomain] = useState<string>('clothing');
+  const [activeSubCategory, setActiveSubCategory] = useState<string>('comp_11');
+  const [rotation, setRotation] = useState<number>(0);
+  const [cameraType, setCameraType] = useState<'body' | 'head'>('body');
+  const [isCustomizationOpen, setIsCustomizationOpen] = useState<boolean>(false);
 
-  const { display, setDisplay, locales, setLocales } = useNuiState();
+  // Modern Mosaic Cloth Store state
+  const [clothView, setClothView] = useState<'mosaic' | 'detail'>('mosaic');
+  const [clothPage, setClothPage] = useState<1 | 2>(1);
 
-  // Camera button handlers - toggle between position and default
-  const handleCameraHead = useCallback(() => {
-    if (activeCamera === 'head') {
-      setActiveCamera('default');
-      Nui.post('appearance_set_camera', 'default');
-    } else {
+  const CAMERA_PRESETS = useMemo(() => ['default', 'head', 'body', 'bottom'], []);
+
+  const handleToggleCamera = useCallback(() => {
+    setActiveCamera(prev => {
+      const next = prev === 'head' ? 'body' : 'head';
+      setCameraType(next === 'head' ? 'head' : 'body');
+      Nui.post('appearance_set_camera', next);
+      return next;
+    });
+  }, []);
+
+  const handleNextCamera = useCallback(() => {
+    const idx = CAMERA_PRESETS.indexOf(activeCamera);
+    const next = CAMERA_PRESETS[(idx + 1) % CAMERA_PRESETS.length];
+    setActiveCamera(next);
+    setCameraType(next === 'head' ? 'head' : 'body');
+    Nui.post('appearance_set_camera', next);
+  }, [CAMERA_PRESETS, activeCamera]);
+
+  const handlePrevCamera = useCallback(() => {
+    const idx = CAMERA_PRESETS.indexOf(activeCamera);
+    const prev = CAMERA_PRESETS[(idx - 1 + CAMERA_PRESETS.length) % CAMERA_PRESETS.length];
+    setActiveCamera(prev);
+    setCameraType(prev === 'head' ? 'head' : 'body');
+    Nui.post('appearance_set_camera', prev);
+  }, [CAMERA_PRESETS, activeCamera]);
+
+  const handleRotateStep = useCallback((step: number) => {
+    setRotation(prev => {
+      const next = (prev + step) % 360;
+      return next < 0 ? Math.round(next + 360) : Math.round(next);
+    });
+    Nui.post('appearance_rotate_ped', step);
+  }, []);
+
+  const handleSelectMosaicCategory = useCallback((categoryId: string) => {
+    setActiveSubCategory(categoryId);
+    setClothView('detail');
+
+    if (['prop_0', 'prop_1', 'prop_2', 'comp_1', 'hair', 'beard'].includes(categoryId)) {
       setActiveCamera('head');
+      setCameraType('head');
       Nui.post('appearance_set_camera', 'head');
-    }
-  }, [activeCamera]);
-
-  const handleCameraBody = useCallback(() => {
-    if (activeCamera === 'body') {
-      setActiveCamera('default');
-      Nui.post('appearance_set_camera', 'default');
+    } else if (['comp_4', 'comp_6'].includes(categoryId)) {
+      setActiveCamera('bottom');
+      setCameraType('body');
+      Nui.post('appearance_set_camera', 'bottom');
     } else {
       setActiveCamera('body');
+      setCameraType('body');
       Nui.post('appearance_set_camera', 'body');
     }
-  }, [activeCamera]);
+  }, []);
 
-  const handleCameraBottom = useCallback(() => {
-    if (activeCamera === 'bottom') {
-      setActiveCamera('default');
-      Nui.post('appearance_set_camera', 'default');
-    } else {
-      setActiveCamera('bottom');
-      Nui.post('appearance_set_camera', 'bottom');
+  // Mouse drag rotation handlers (throttled with RAF to avoid flooding NUI / re-renders)
+  const pendingDeltaX = useRef(0);
+  const rotRafId = useRef<number | null>(null);
+
+  const flushPedRotation = useCallback(() => {
+    if (rotRafId.current !== null) {
+      cancelAnimationFrame(rotRafId.current);
+      rotRafId.current = null;
     }
-  }, [activeCamera]);
+    const delta = pendingDeltaX.current;
+    if (Math.abs(delta) > 0.1) {
+      pendingDeltaX.current = 0;
+      setRotation(prev => {
+        const next = (prev + delta) % 360;
+        return next < 0 ? Math.round(next + 360) : Math.round(next);
+      });
+      Nui.post('appearance_rotate_ped', delta);
+    }
+  }, []);
 
-  // Mouse drag rotation handlers
+  useEffect(() => {
+    return () => {
+      if (rotRafId.current !== null) {
+        cancelAnimationFrame(rotRafId.current);
+      }
+    };
+  }, []);
+
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     // Only start drag on left mouse button and on the background area
     if (e.button === 0 && e.target === e.currentTarget) {
       isDragging.current = true;
       lastMouseX.current = e.clientX;
+      pendingDeltaX.current = 0;
+      e.preventDefault();
+    }
+  }, []);
+
+  const handleViewportDragStart = useCallback((e: React.MouseEvent) => {
+    if (e.button === 0) {
+      isDragging.current = true;
+      lastMouseX.current = e.clientX;
+      pendingDeltaX.current = 0;
       e.preventDefault();
     }
   }, []);
@@ -304,21 +420,39 @@ const Appearance = () => {
     const deltaX = e.clientX - lastMouseX.current;
     lastMouseX.current = e.clientX;
     
-    // Convert pixel movement to rotation (very fast - 3x multiplier)
+    // Convert pixel movement to rotation (3x multiplier)
     const rotationDelta = -deltaX * 3;
-    
-    if (Math.abs(rotationDelta) > 0.1) {
-      Nui.post('appearance_rotate_ped', rotationDelta);
+    pendingDeltaX.current += rotationDelta;
+
+    if (rotRafId.current === null) {
+      rotRafId.current = requestAnimationFrame(() => {
+        rotRafId.current = null;
+        const delta = pendingDeltaX.current;
+        if (Math.abs(delta) > 0.1) {
+          pendingDeltaX.current = 0;
+          setRotation(prev => {
+            const next = (prev + delta) % 360;
+            return next < 0 ? Math.round(next + 360) : Math.round(next);
+          });
+          Nui.post('appearance_rotate_ped', delta);
+        }
+      });
     }
   }, []);
 
   const handleMouseUp = useCallback(() => {
-    isDragging.current = false;
-  }, []);
+    if (isDragging.current) {
+      isDragging.current = false;
+      flushPedRotation();
+    }
+  }, [flushPedRotation]);
 
   const handleMouseLeave = useCallback(() => {
-    isDragging.current = false;
-  }, []);
+    if (isDragging.current) {
+      isDragging.current = false;
+      flushPedRotation();
+    }
+  }, [flushPedRotation]);
 
   const wrapperTransition = useTransitionAnimation(display.appearance, null, {
     from: { transform: 'translateX(-50px)', opacity: 0 },
@@ -667,8 +801,16 @@ const Appearance = () => {
       return true;
     }
 
-    return false
+    return false;
   }, [data]);
+
+  const handleToggleGender = useCallback(() => {
+    if (isPedMale) {
+      handleModelChange('mp_f_freemode_01');
+    } else {
+      handleModelChange('mp_m_freemode_01');
+    }
+  }, [isPedMale, handleModelChange]);
 
   const filterTattoos = (tattooSettings: TattoosSettings) => {
     for(const zone in tattooSettings.items) {
@@ -807,21 +949,373 @@ const Appearance = () => {
     setStoredData(DEV_APPEARANCE_EXAMPLE);
   }, []);
 
-  // When config loads or dev store changes, auto-select first available category if current has no content
+  const availableDomains = useMemo(() => {
+    const cfg = effectiveConfig ?? config;
+    if (!cfg) return [];
+    const list: { id: string; label: string }[] = [];
+    if (cfg.components || cfg.props) list.push({ id: 'clothing', label: 'Roupas' });
+    if (cfg.headOverlays) list.push({ id: 'barber', label: 'Barbearia' });
+    if (cfg.tattoos && isPedFreemodeModel) list.push({ id: 'tattoos', label: 'Tatuagens' });
+    if (cfg.headBlend && isPedFreemodeModel) list.push({ id: 'genetics', label: 'Genética' });
+    if (cfg.faceFeatures && isPedFreemodeModel) list.push({ id: 'face', label: 'Rosto' });
+    if (cfg.ped) list.push({ id: 'ped', label: 'Modelos' });
+    return list;
+  }, [effectiveConfig, config, isPedFreemodeModel]);
+
+  // Ensure activeDomain is valid
   useEffect(() => {
-    if (!effectiveConfig) return;
-    const categoryOrder = ['ped', 'headBlend', 'faceFeatures', 'headOverlays', 'hair', 'makeup', 'tattoos', 'components', 'props'] as const;
-    const getCategoryConfigKey = (cat: string) =>
-      (['headOverlays', 'hair', 'makeup'].includes(cat) ? 'headOverlays' : cat) as keyof typeof effectiveConfig;
-    const hasContent = (cat: string) => {
-      const key = getCategoryConfigKey(cat);
-      return effectiveConfig[key] === true;
-    };
-    if (!hasContent(activeCategory)) {
-      const firstAvailable = categoryOrder.find(hasContent);
-      if (firstAvailable) setActiveCategory(firstAvailable);
+    if (availableDomains.length > 0 && !availableDomains.some(d => d.id === activeDomain)) {
+      setActiveDomain(availableDomains[0].id);
     }
-  }, [effectiveConfig, activeCategory]);
+  }, [availableDomains, activeDomain]);
+
+  // Build sidebar categories for the active domain
+  const sidebarCategories = useMemo<CategoryItem[]>(() => {
+    const cfg = effectiveConfig ?? config;
+    if (!cfg) return [];
+
+    if (activeDomain === 'clothing') {
+      const list: CategoryItem[] = [];
+      if (cfg.componentConfig?.jackets) list.push({ id: 'comp_11', title: 'JAQUETAS', icon: <IconJackets /> });
+      if (cfg.componentConfig?.shirts) list.push({ id: 'comp_8', title: 'CAMISAS', icon: <IconShirt /> });
+      if (cfg.componentConfig?.lowerBody) list.push({ id: 'comp_4', title: 'CALÇAS', icon: <IconPants /> });
+      if (cfg.componentConfig?.scarfAndChains) list.push({ id: 'comp_7', title: 'ACESSÓRIOS', icon: <IconNecklace /> });
+      if (cfg.componentConfig?.shoes) list.push({ id: 'comp_6', title: 'SAPATOS', icon: <IconShoes /> });
+      if (cfg.componentConfig?.bodyArmor) list.push({ id: 'comp_9', title: 'COLETES', icon: <IconArmor /> });
+      if (cfg.componentConfig?.masks) list.push({ id: 'comp_1', title: 'MÁSCARAS', icon: <IconMask /> });
+      if (cfg.componentConfig?.bags) list.push({ id: 'comp_5', title: 'MOCHILAS', icon: <IconBag /> });
+      if (cfg.propConfig?.ear) list.push({ id: 'prop_2', title: 'BRINCOS', icon: <IconEarrings /> });
+      if (cfg.propConfig?.bracelets) list.push({ id: 'prop_7', title: 'BRACELETES', icon: <IconBracelet /> });
+      if (cfg.propConfig?.watches) list.push({ id: 'prop_6', title: 'RELÓGIO', icon: <IconWatch /> });
+      if (cfg.propConfig?.hats) list.push({ id: 'prop_0', title: 'CHAPÉUS', icon: <IconHats /> });
+      if (cfg.propConfig?.glasses) list.push({ id: 'prop_1', title: 'ÓCULOS', icon: <IconGlasses /> });
+      if (cfg.componentConfig?.upperBody) list.push({ id: 'comp_3', title: 'MÃOS', icon: <IconHands /> });
+      if (cfg.componentConfig?.decals) list.push({ id: 'comp_10', title: 'ADESIVOS', icon: <IconBadge /> });
+      return list;
+    }
+
+    if (activeDomain === 'barber') {
+      return [
+        { id: 'hair', title: 'Cabelo', icon: <IconHair /> },
+        { id: 'beard', title: 'Barba', icon: <IconBeard /> },
+        { id: 'eyebrows', title: 'Sobrancelhas', icon: <IconEyebrows /> },
+        { id: 'chestHair', title: 'Pelos do Peito', icon: <IconChestHair /> },
+        { id: 'eyes', title: 'Olhos', icon: <IconEyes /> },
+        { id: 'makeUp', title: 'Maquiagem', icon: <IconMakeup /> },
+        { id: 'blush', title: 'Blush', icon: <IconSmile /> },
+        { id: 'lipstick', title: 'Batom', icon: <IconLipstick /> },
+        { id: 'blemishes', title: 'Manchas', icon: <IconSmile /> },
+        { id: 'ageing', title: 'Rugas', icon: <IconAgeing /> },
+        { id: 'complexion', title: 'Aspecto', icon: <IconComplexion /> },
+        { id: 'sunDamage', title: 'Danos do Sol', icon: <IconSundamage /> },
+        { id: 'moleAndFreckles', title: 'Sardas', icon: <IconFreckles /> },
+      ];
+    }
+
+    if (activeDomain === 'tattoos') {
+      return [
+        { id: 'ZONE_TORSO', title: 'Torso', icon: <IconTorso /> },
+        { id: 'ZONE_HEAD', title: 'Cabeça', icon: <IconCameraHead /> },
+        { id: 'ZONE_LEFT_ARM', title: 'Braço Esq', icon: <IconArm /> },
+        { id: 'ZONE_RIGHT_ARM', title: 'Braço Dir', icon: <IconArm style={{ transform: 'scaleX(-1)' }} /> },
+        { id: 'ZONE_LEFT_LEG', title: 'Perna Esq', icon: <IconLeg /> },
+        { id: 'ZONE_RIGHT_LEG', title: 'Perna Dir', icon: <IconLeg style={{ transform: 'scaleX(-1)' }} /> },
+        { id: 'ZONE_HAIR', title: 'Micropigmentação', icon: <IconMicropig /> },
+      ];
+    }
+
+    if (activeDomain === 'genetics') {
+      return [{ id: 'parents', title: 'Genética', icon: <IconParents /> }];
+    }
+
+    if (activeDomain === 'face') {
+      return [{ id: 'features', title: 'Rosto', icon: <IconFaceFeatures /> }];
+    }
+
+    if (activeDomain === 'ped') {
+      return [{ id: 'model', title: 'Modelo', icon: <IconPed /> }];
+    }
+
+    return [];
+  }, [effectiveConfig, config, activeDomain]);
+
+  // Ensure activeSubCategory is valid within the domain
+  useEffect(() => {
+    if (sidebarCategories.length > 0 && !sidebarCategories.some(c => c.id === activeSubCategory)) {
+      setActiveSubCategory(sidebarCategories[0].id);
+    }
+  }, [sidebarCategories, activeSubCategory]);
+
+  // Adjust camera to focus on body part when changing tattoo categories
+  useEffect(() => {
+    if (!display.appearance) return;
+    if (activeDomain === 'tattoos') {
+      if (activeSubCategory === 'ZONE_HEAD' || activeSubCategory === 'ZONE_HAIR') {
+        Nui.post('appearance_set_camera', 'head');
+        setCameraType('head');
+      } else if (activeSubCategory === 'ZONE_LEFT_LEG' || activeSubCategory === 'ZONE_RIGHT_LEG') {
+        Nui.post('appearance_set_camera', 'bottom');
+        setCameraType('body');
+      } else {
+        Nui.post('appearance_set_camera', 'body');
+        setCameraType('body');
+      }
+    }
+  }, [display.appearance, activeDomain, activeSubCategory]);
+
+  const currentCategoryObj = useMemo(() => {
+    return sidebarCategories.find(c => c.id === activeSubCategory) || sidebarCategories[0];
+  }, [sidebarCategories, activeSubCategory]);
+
+  const activeCategoryTitle = currentCategoryObj?.title ?? 'Customização';
+
+  const handlePrevCategory = useCallback(() => {
+    if (sidebarCategories.length === 0) return;
+    const idx = sidebarCategories.findIndex(c => c.id === activeSubCategory);
+    const prevIdx = (idx - 1 + sidebarCategories.length) % sidebarCategories.length;
+    setActiveSubCategory(sidebarCategories[prevIdx].id);
+  }, [sidebarCategories, activeSubCategory]);
+
+  const handleNextCategory = useCallback(() => {
+    if (sidebarCategories.length === 0) return;
+    const idx = sidebarCategories.findIndex(c => c.id === activeSubCategory);
+    const nextIdx = (idx + 1) % sidebarCategories.length;
+    setActiveSubCategory(sidebarCategories[nextIdx].id);
+  }, [sidebarCategories, activeSubCategory]);
+
+  const currentCategoryItemCount = useMemo(() => {
+    if (!appearanceSettings) return 0;
+    if (activeSubCategory.startsWith('comp_')) {
+      const compId = parseInt(activeSubCategory.replace('comp_', ''), 10);
+      const compSetting = appearanceSettings.components.find(c => c.component_id === compId);
+      if (!compSetting) return 0;
+      const min = compSetting.drawable?.min ?? 0;
+      const max = compSetting.drawable?.max ?? 0;
+      const blacklist = compSetting.blacklist?.drawables ?? [];
+      const blocked = new Set(blacklist.map(n => Number(n)));
+      let count = 0;
+      for (let i = Math.max(0, min); i <= max; i++) {
+        if (!blocked.has(i)) count++;
+      }
+      return count;
+    }
+    if (activeSubCategory.startsWith('prop_')) {
+      const propId = parseInt(activeSubCategory.replace('prop_', ''), 10);
+      const propSetting = appearanceSettings.props.find(p => p.prop_id === propId);
+      if (!propSetting) return 0;
+      const min = propSetting.drawable?.min ?? -1;
+      const max = propSetting.drawable?.max ?? 0;
+      const blacklist = propSetting.blacklist?.drawables ?? [];
+      const blocked = new Set(blacklist.map(n => Number(n)));
+      let count = 0;
+      for (let i = Math.max(0, min); i <= max; i++) {
+        if (!blocked.has(i)) count++;
+      }
+      return count;
+    }
+    if (activeSubCategory === 'hair') {
+      const min = appearanceSettings.hair?.style?.min ?? 0;
+      const max = appearanceSettings.hair?.style?.max ?? 0;
+      return max - min + 1;
+    }
+    return 0;
+  }, [appearanceSettings, activeSubCategory]);
+
+  // Compute customization options for GustaCustomizationPopover
+  const customizationProps = useMemo(() => {
+    if (!data || !appearanceSettings) return { hasCustomization: false };
+
+    if (activeSubCategory.startsWith('comp_')) {
+      const compId = parseInt(activeSubCategory.replace('comp_', ''), 10);
+      const comp = data.components.find(c => c.component_id === compId);
+      const compSetting = appearanceSettings.components.find(c => c.component_id === compId);
+      const maxTex = compSetting?.texture?.max ?? 0;
+      return {
+        hasCustomization: maxTex > 0,
+        hasVariation: maxTex > 0,
+        variation: comp?.texture ?? 0,
+        maxVariation: maxTex,
+        onVariationChange: (val: number) => handleComponentTextureChange(compId, val),
+      };
+    }
+
+    if (activeSubCategory.startsWith('prop_')) {
+      const propId = parseInt(activeSubCategory.replace('prop_', ''), 10);
+      const prop = data.props.find(p => p.prop_id === propId);
+      const propSetting = appearanceSettings.props.find(p => p.prop_id === propId);
+      const maxTex = propSetting?.texture?.max ?? 0;
+      return {
+        hasCustomization: maxTex > 0,
+        hasVariation: maxTex > 0,
+        variation: prop?.texture ?? 0,
+        maxVariation: maxTex,
+        onVariationChange: (val: number) => handlePropTextureChange(propId, val),
+      };
+    }
+
+    if (activeSubCategory === 'hair') {
+      const maxTex = appearanceSettings.hair?.texture?.max ?? 0;
+      return {
+        hasCustomization: true,
+        hasMainColor: true,
+        mainColor: data.hair.color,
+        onMainColorChange: (val: number) => handleHairChange('color', val),
+        hasSecondaryColor: true,
+        secondaryColor: data.hair.highlight,
+        onSecondaryColorChange: (val: number) => handleHairChange('highlight', val),
+        colorPickerType: 'colors_type_1' as const,
+        hasVariation: maxTex > 0,
+        variation: data.hair.texture,
+        maxVariation: maxTex,
+        onVariationChange: (val: number) => handleHairChange('texture', val),
+      };
+    }
+
+    if (['beard', 'eyebrows', 'chestHair'].includes(activeSubCategory)) {
+      const key = activeSubCategory as 'beard' | 'eyebrows' | 'chestHair';
+      const overlay = data.headOverlays[key];
+      return {
+        hasCustomization: true,
+        hasMainColor: true,
+        mainColor: overlay?.color ?? 0,
+        onMainColorChange: (val: number) => handleHeadOverlayChange(key, 'color', val),
+        colorPickerType: 'colors_type_1' as const,
+        hasOpacity: true,
+        opacity: overlay?.opacity ?? 1,
+        onOpacityChange: (val: number) => handleHeadOverlayChange(key, 'opacity', val),
+      };
+    }
+
+    if (['makeUp', 'blush', 'lipstick'].includes(activeSubCategory)) {
+      const key = activeSubCategory as 'makeUp' | 'blush' | 'lipstick';
+      const overlay = data.headOverlays[key];
+      return {
+        hasCustomization: true,
+        hasMainColor: true,
+        mainColor: overlay?.color ?? 0,
+        onMainColorChange: (val: number) => handleHeadOverlayChange(key, 'color', val),
+        colorPickerType: key === 'makeUp' ? ('colors_type_3' as const) : ('colors_type_2' as const),
+        hasOpacity: true,
+        opacity: overlay?.opacity ?? 1,
+        onOpacityChange: (val: number) => handleHeadOverlayChange(key, 'opacity', val),
+      };
+    }
+
+    if (['blemishes', 'ageing', 'complexion', 'sunDamage', 'moleAndFreckles'].includes(activeSubCategory)) {
+      const key = activeSubCategory as 'blemishes' | 'ageing' | 'complexion' | 'sunDamage' | 'moleAndFreckles';
+      const overlay = data.headOverlays[key];
+      return {
+        hasCustomization: true,
+        hasOpacity: true,
+        opacity: overlay?.opacity ?? 1,
+        onOpacityChange: (val: number) => handleHeadOverlayChange(key, 'opacity', val),
+      };
+    }
+
+    return { hasCustomization: false };
+  }, [
+    data,
+    appearanceSettings,
+    activeSubCategory,
+    handleComponentTextureChange,
+    handlePropTextureChange,
+    handleHairChange,
+    handleHeadOverlayChange,
+  ]);
+
+  // Close popover if category lacks customization
+  useEffect(() => {
+    if (!customizationProps.hasCustomization) {
+      setIsCustomizationOpen(false);
+    }
+  }, [customizationProps.hasCustomization]);
+
+  // Jump directly to an item ID via quick search box
+  const handleSearchSubmit = useCallback(
+    (value: number) => {
+      if (activeSubCategory.startsWith('comp_')) {
+        const compId = parseInt(activeSubCategory.replace('comp_', ''), 10);
+        handleComponentDrawableChange(compId, value);
+      } else if (activeSubCategory.startsWith('prop_')) {
+        const propId = parseInt(activeSubCategory.replace('prop_', ''), 10);
+        handlePropDrawableChange(propId, value);
+      } else if (activeSubCategory === 'hair') {
+        handleHairChange('style', value);
+      } else if (
+        [
+          'beard',
+          'eyebrows',
+          'chestHair',
+          'makeUp',
+          'blush',
+          'lipstick',
+          'blemishes',
+          'ageing',
+          'complexion',
+          'sunDamage',
+          'moleAndFreckles',
+        ].includes(activeSubCategory)
+      ) {
+        handleHeadOverlayChange(activeSubCategory as any, 'style', value);
+      }
+    },
+    [
+      activeSubCategory,
+      handleComponentDrawableChange,
+      handlePropDrawableChange,
+      handleHairChange,
+      handleHeadOverlayChange,
+    ],
+  );
+
+  // Variation step handlers for header < [🎨] >
+  const handlePrevVariation = useCallback(() => {
+    if (customizationProps.onVariationChange) {
+      const cur = customizationProps.variation ?? 0;
+      const max = customizationProps.maxVariation ?? 0;
+      if (max <= 0) return;
+      const prev = cur - 1 < 0 ? max : cur - 1;
+      customizationProps.onVariationChange(prev);
+    }
+  }, [customizationProps]);
+
+  const handleNextVariation = useCallback(() => {
+    if (customizationProps.onVariationChange) {
+      const cur = customizationProps.variation ?? 0;
+      const max = customizationProps.maxVariation ?? 0;
+      if (max <= 0) return;
+      const next = cur + 1 > max ? 0 : cur + 1;
+      customizationProps.onVariationChange(next);
+    }
+  }, [customizationProps]);
+
+  // ESC and A / D keyboard rotation handling
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea') return;
+
+      if (e.code === 'KeyA' || e.key === 'a' || e.key === 'A') {
+        handleRotateStep(-15);
+      } else if (e.code === 'KeyD' || e.key === 'd' || e.key === 'D') {
+        handleRotateStep(15);
+      } else if (e.key === 'ArrowLeft' && clothView === 'mosaic' && activeDomain === 'clothing') {
+        setClothPage(1);
+      } else if (e.key === 'ArrowRight' && clothView === 'mosaic' && activeDomain === 'clothing') {
+        setClothPage(2);
+      } else if (e.key === 'Escape') {
+        if (isCustomizationOpen) {
+          setIsCustomizationOpen(false);
+        } else if (clothView === 'detail' && activeDomain === 'clothing') {
+          setClothView('mosaic');
+        } else {
+          handleExitModal();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCustomizationOpen, clothView, activeDomain, handleRotateStep, handleExitModal, setClothPage]);
 
   const activeLocales = locales || (isDev ? DEV_NUI_FIXTURE_LOCALES : null);
 
@@ -829,114 +1323,255 @@ const Appearance = () => {
     return null;
   }
 
-  const renderCategoryContent = () => {
-    const cfg = effectiveConfig ?? config;
-    switch (activeCategory) {
-      case 'ped':
-        return cfg.ped && (
-          <Ped
-            settings={appearanceSettings.ped}
-            storedData={storedData.model}
-            data={data.model}
-            handleModelChange={handleModelChange}
-          />
-        );
-      case 'headBlend':
-        return isPedFreemodeModel && cfg.headBlend && (
-          <HeadBlend
-            settings={appearanceSettings.headBlend}
-            storedData={storedData.headBlend}
-            data={data.headBlend}
-            handleHeadBlendChange={handleHeadBlendChange}
-          />
-        );
-      case 'faceFeatures':
-        return isPedFreemodeModel && cfg.faceFeatures && (
-          <FaceFeatures
-            settings={appearanceSettings.faceFeatures}
-            storedData={storedData.faceFeatures}
-            data={data.faceFeatures}
-            handleFaceFeatureChange={handleFaceFeatureChange}
-          />
-        );
-      case 'headOverlays':
-      case 'hair':
-      case 'makeup':
-        return cfg.headOverlays && (
-          <HeadOverlays
-            activeCategory={activeCategory as 'headOverlays' | 'hair' | 'makeup'}
-            settings={{
-              hair: appearanceSettings.hair,
-              headOverlays: appearanceSettings.headOverlays,
-              eyeColor: appearanceSettings.eyeColor,
-              fade: appearanceSettings.tattoos.items['ZONE_HAIR']
-            }}
-            storedData={{
-              hair: storedData.hair,
-              headOverlays: storedData.headOverlays,
-              eyeColor: storedData.eyeColor,
-              fade: storedData.tattoos?.ZONE_HAIR?.length > 0 ? storedData.tattoos.ZONE_HAIR[0] : null
-            }}
-            data={{
-              hair: data.hair,
-              headOverlays: data.headOverlays,
-              eyeColor: data.eyeColor,
-              fade: data.tattoos?.ZONE_HAIR?.length > 0 ? data.tattoos.ZONE_HAIR[0] : null
-            }}
-            isPedFreemodeModel={isPedFreemodeModel}
-            handleHairChange={handleHairChange}
-            handleHeadOverlayChange={handleHeadOverlayChange}
-            handleEyeColorChange={handleEyeColorChange}
-            handleChangeFade={handleChangeFade}
-            automaticFade={config.automaticFade}
-            gender={isPedMale ? 'male' : 'female'}
-          />
-        );
-      case 'components':
-        return cfg.components && (
-          <Components
-            settings={appearanceSettings.components}
-            data={data.components}
-            storedData={storedData.components}
-            handleComponentDrawableChange={handleComponentDrawableChange}
-            handleComponentTextureChange={handleComponentTextureChange}
-            componentConfig={cfg.componentConfig}
-            hasTracker={config.hasTracker}
-            isPedFreemodeModel={isPedFreemodeModel}
-            gender={isPedMale ? 'male' : 'female'}
-          />
-        );
-      case 'props':
-        return cfg.props && (
-          <Props
-            settings={appearanceSettings.props}
-            data={data.props}
-            storedData={storedData.props}
-            handlePropDrawableChange={handlePropDrawableChange}
-            handlePropTextureChange={handlePropTextureChange}
-            propConfig={cfg.propConfig}
-            gender={isPedMale ? 'male' : 'female'}
-          />
-        );
-      case 'tattoos':
-        return isPedFreemodeModel && cfg.tattoos && (
-          <Tattoos
-            settings={filterTattoos(appearanceSettings.tattoos)}
-            data={data.tattoos}
-            storedData={storedData.tattoos}
-            handleApplyTattoo={handleApplyTattoo}
-            handlePreviewTattoo={handlePreviewTattoo}
-            handleDeleteTattoo={handleDeleteTattoo}
-            handleClearTattoos={handleClearTattoos}
-          />
-        );
-      default:
-        return null;
+  const shopTitle = (() => {
+    if (isDev) {
+      return DEV_STORE_HEADERS[devStore].title.toUpperCase();
     }
+    if (availableDomains.length === 1) {
+      switch (availableDomains[0].id) {
+        case 'clothing':
+          return 'LOJA DE ROUPAS';
+        case 'barber':
+          return 'BARBEARIA';
+        case 'tattoos':
+          return 'TATUAGENS';
+        case 'genetics':
+        case 'face':
+          return 'CRIADOR DE PERSONAGEM';
+      }
+    }
+    return (activeLocales.header?.title ?? 'APARÊNCIA').toUpperCase();
+  })();
+
+  const renderGustaContent = () => {
+    const cfg = effectiveConfig ?? config;
+
+    // Clothing Components
+    if (activeSubCategory.startsWith('comp_')) {
+      const compId = parseInt(activeSubCategory.replace('comp_', ''), 10);
+      const comp = data.components.find(c => c.component_id === compId);
+      const compSetting = appearanceSettings.components.find(c => c.component_id === compId);
+      const min = compSetting?.drawable?.min ?? 0;
+      const max = compSetting?.drawable?.max ?? 0;
+      const selected = comp?.drawable ?? 0;
+      const blacklist = compSetting?.blacklist?.drawables ?? [];
+
+      return (
+        <ThumbnailGrid
+          target={{ kind: 'component', id: compId, gender: isPedMale ? 'male' : 'female' }}
+          min={min}
+          max={max}
+          selected={selected}
+          blacklisted={blacklist}
+          onSelect={val => handleComponentDrawableChange(compId, val)}
+        />
+      );
+    }
+
+    // Props
+    if (activeSubCategory.startsWith('prop_')) {
+      const propId = parseInt(activeSubCategory.replace('prop_', ''), 10);
+      const prop = data.props.find(p => p.prop_id === propId);
+      const propSetting = appearanceSettings.props.find(p => p.prop_id === propId);
+      const min = propSetting?.drawable?.min ?? -1;
+      const max = propSetting?.drawable?.max ?? 0;
+      const selected = prop?.drawable ?? -1;
+      const blacklist = propSetting?.blacklist?.drawables ?? [];
+
+      return (
+        <ThumbnailGrid
+          target={{ kind: 'prop', id: propId, gender: isPedMale ? 'male' : 'female' }}
+          min={min}
+          max={max}
+          selected={selected}
+          blacklisted={blacklist}
+          onSelect={val => handlePropDrawableChange(propId, val)}
+        />
+      );
+    }
+
+    // Hair
+    if (activeSubCategory === 'hair') {
+      return (
+        <ThumbnailGrid
+          target={{ kind: 'component', id: 2, gender: isPedMale ? 'male' : 'female' }}
+          min={appearanceSettings.hair.style.min}
+          max={appearanceSettings.hair.style.max}
+          selected={data.hair.style}
+          blacklisted={appearanceSettings.hair.blacklist?.drawables ?? []}
+          onSelect={val => handleHairChange('style', val)}
+        />
+      );
+    }
+
+    // Eyes
+    if (activeSubCategory === 'eyes') {
+      return (
+        <RangeInput
+          title="Cor dos Olhos"
+          min={appearanceSettings.eyeColor?.min ?? 0}
+          max={appearanceSettings.eyeColor?.max ?? 24}
+          defaultValue={data.eyeColor}
+          clientValue={storedData.eyeColor}
+          onChange={handleEyeColorChange}
+        />
+      );
+    }
+
+    // Barbershop Overlays
+    if (
+      [
+        'beard',
+        'eyebrows',
+        'chestHair',
+        'makeUp',
+        'blush',
+        'lipstick',
+        'blemishes',
+        'ageing',
+        'complexion',
+        'sunDamage',
+        'moleAndFreckles',
+      ].includes(activeSubCategory)
+    ) {
+      const key = activeSubCategory as keyof PedHeadOverlays;
+      const setting = appearanceSettings.headOverlays[key];
+      const overlay = data.headOverlays[key];
+      const storedOverlay = storedData.headOverlays[key];
+      const title = currentCategoryObj?.title ?? key;
+
+      return (
+        <RangeInput
+          title={title}
+          min={setting?.style?.min ?? 0}
+          max={setting?.style?.max ?? 0}
+          defaultValue={overlay?.style ?? 0}
+          clientValue={storedOverlay?.style ?? 0}
+          onChange={val => handleHeadOverlayChange(key, 'style', val)}
+        />
+      );
+    }
+
+    // Tattoos
+    if (activeDomain === 'tattoos') {
+      const filteredZoneTattoos = (() => {
+        const zoneTattoos = appearanceSettings.tattoos.items[activeSubCategory] || [];
+        return zoneTattoos.filter(tattoo => {
+          if (isPedMale && tattoo.hashMale !== '') return true;
+          if (!isPedMale && tattoo.hashFemale !== '') return true;
+          return false;
+        });
+      })();
+
+      return (
+        <Tattoos
+          activeZone={activeSubCategory}
+          settings={{
+            ...appearanceSettings.tattoos,
+            items: {
+              ...appearanceSettings.tattoos.items,
+              [activeSubCategory]: filteredZoneTattoos,
+            },
+          }}
+          data={data.tattoos}
+          storedData={storedData.tattoos}
+          handleApplyTattoo={handleApplyTattoo}
+          handlePreviewTattoo={handlePreviewTattoo}
+          handleDeleteTattoo={handleDeleteTattoo}
+          handleClearTattoos={handleClearTattoos}
+        />
+      );
+    }
+
+    // Genetics
+    if (activeDomain === 'genetics') {
+      return (
+        <HeadBlend
+          settings={appearanceSettings.headBlend}
+          storedData={storedData.headBlend}
+          data={data.headBlend}
+          handleHeadBlendChange={handleHeadBlendChange}
+        />
+      );
+    }
+
+    // Face
+    if (activeDomain === 'face') {
+      return (
+        <FaceFeatures
+          settings={appearanceSettings.faceFeatures}
+          storedData={storedData.faceFeatures}
+          data={data.faceFeatures}
+          handleFaceFeatureChange={handleFaceFeatureChange}
+        />
+      );
+    }
+
+    // Ped
+    if (activeDomain === 'ped') {
+      return (
+        <Ped
+          settings={appearanceSettings.ped}
+          storedData={storedData.model}
+          data={data.model}
+          handleModelChange={handleModelChange}
+        />
+      );
+    }
+
+    return null;
   };
 
-  // Main panel content - extracted for reuse
-  const mainContent = (
+  // Main panel content - Modern Mosaic Cloth Store Floating Card, Bespoke Barbearia, or Tattoo Studio
+  const isBarberStoreMode =
+    (isDev && devStore === 'barber') ||
+    activeDomain === 'barber' ||
+    (availableDomains.length === 1 && availableDomains[0].id === 'barber');
+
+  const isTattooStoreMode =
+    (isDev && devStore === 'tattoo') ||
+    activeDomain === 'tattoos' ||
+    (availableDomains.length === 1 && availableDomains[0].id === 'tattoos');
+
+  const mainContent = isBarberStoreMode ? (
+    <Wrapper
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseLeave}
+      style={{ cursor: isDragging.current ? 'grabbing' : 'default', justifyContent: 'center' }}
+    >
+      {isDev && (
+        <DevPanel
+          store={devStore}
+          onStoreChange={(s) => {
+            setDevStore(s);
+            if (s === 'barber') setActiveDomain('barber');
+            else if (s === 'clothing') setActiveDomain('clothing');
+            else if (s === 'tattoo') setActiveDomain('tattoos');
+          }}
+          onLoadExampleData={() => reloadAppearancePayload(false)}
+          onResetData={handleResetData}
+        />
+      )}
+      <BarberStoreView
+        data={data}
+        storedData={storedData}
+        appearanceSettings={appearanceSettings}
+        isMale={!!isPedMale}
+        activeCamera={activeCamera}
+        onToggleCamera={handleToggleCamera}
+        onToggleGender={handleToggleGender}
+        onStartDrag={handleViewportDragStart}
+        onHairChange={handleHairChange}
+        onHeadOverlayChange={handleHeadOverlayChange}
+        onEyeColorChange={handleEyeColorChange}
+        onExit={handleExitModal}
+        onSave={handleSaveModal}
+        isDev={isDev}
+      />
+    </Wrapper>
+  ) : isTattooStoreMode ? (
     <Wrapper
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -944,95 +1579,158 @@ const Appearance = () => {
       onMouseLeave={handleMouseLeave}
       style={{ cursor: isDragging.current ? 'grabbing' : 'default' }}
     >
-      <BottomToolDock aria-labelledby="appearance-dock-camera-title appearance-dock-controls-title">
-        <ToolDockHeading id="appearance-dock-camera-title">
-          {activeLocales.camera?.dockTitle ?? 'Camera'}
-        </ToolDockHeading>
-        <DockControlsRow>
-          <CameraButtons>
-            <CameraButton
-              type="button"
-              onClick={handleCameraHead}
-              active={activeCamera === 'head'}
-              title={activeLocales.camera?.head ?? 'Head'}
-              aria-label={activeLocales.camera?.head ?? 'Head'}
-            >
-              <User strokeWidth={1.5} stroke="currentColor" />
-            </CameraButton>
-            <CameraButton
-              type="button"
-              onClick={handleCameraBody}
-              active={activeCamera === 'body'}
-              title={activeLocales.camera?.torso ?? 'Torso'}
-              aria-label={activeLocales.camera?.torso ?? 'Torso'}
-            >
-              <Shirt strokeWidth={1.5} stroke="currentColor" />
-            </CameraButton>
-            <CameraButton
-              type="button"
-              onClick={handleCameraBottom}
-              active={activeCamera === 'bottom'}
-              title={activeLocales.camera?.legs ?? 'Legs'}
-              aria-label={activeLocales.camera?.legs ?? 'Legs'}
-            >
-              <Footprints strokeWidth={1.5} stroke="currentColor" />
-            </CameraButton>
-          </CameraButtons>
-        </DockControlsRow>
-        <DockDivider />
-        <ToolDockHeading id="appearance-dock-controls-title">
-          {activeLocales.controls?.dockTitle ?? 'Rotate'}
-        </ToolDockHeading>
-        <DockControlsRow>
-          <RotateKeyRow
-            aria-label={`${activeLocales.controls?.rotateLeft ?? 'Rotate left'} (A) — ${activeLocales.controls?.rotateRight ?? 'Rotate right'} (D)`}
-          >
-            <RotateHintCol>
-              <kbd>A</kbd>
-            </RotateHintCol>
-            <RotateHintCol>
-              <kbd>D</kbd>
-            </RotateHintCol>
-          </RotateKeyRow>
-        </DockControlsRow>
-      </BottomToolDock>
       {isDev && (
         <DevPanel
           store={devStore}
-          onStoreChange={setDevStore}
+          onStoreChange={(s) => {
+            setDevStore(s);
+            if (s === 'barber') setActiveDomain('barber');
+            else if (s === 'clothing') setActiveDomain('clothing');
+            else if (s === 'tattoo') setActiveDomain('tattoos');
+          }}
           onLoadExampleData={() => reloadAppearancePayload(false)}
           onResetData={handleResetData}
         />
       )}
-      <TopLeftLogo />
-      <Sidebar
-        activeCategory={activeCategory}
-        onCategoryChange={setActiveCategory}
-        config={effectiveConfig ?? config}
-        locales={activeLocales}
-      />
-      <BottomLeftCluster
-        clothes={clothes}
-        onSetClothes={handleSetClothes}
-        locales={activeLocales}
-        saveLabel={activeLocales.footer?.save ?? 'Save'}
-        closeLabel={activeLocales.footer?.cancel ?? 'Close'}
+      <TattooStoreView
+        data={data}
+        storedData={storedData}
+        appearanceSettings={appearanceSettings}
+        isMale={!!isPedMale}
+        activeCamera={activeCamera}
+        onToggleCamera={handleToggleCamera}
+        handleApplyTattoo={handleApplyTattoo}
+        handlePreviewTattoo={handlePreviewTattoo}
+        handleDeleteTattoo={handleDeleteTattoo}
+        handleClearTattoos={handleClearTattoos}
+        onExit={handleExitModal}
         onSave={handleSaveModal}
-        onClose={handleExitModal}
+        isDev={isDev}
       />
-      <MainPanel>
-        <UnifiedShell>
-          <ContentPanel>
-            <Header
-              title={isDev ? DEV_STORE_HEADERS[devStore].title : (activeLocales.header?.title ?? 'Appearance Editor')}
-              subtitle={isDev ? DEV_STORE_HEADERS[devStore].subtitle : (activeLocales.header?.subtitle ?? 'Customize your character')}
-              currentLocale={currentLocale}
-              onLocaleChange={handleLocaleChange}
+    </Wrapper>
+  ) : (
+    <Wrapper
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseLeave}
+      style={{ cursor: isDragging.current ? 'grabbing' : 'default', justifyContent: 'flex-end' }}
+    >
+      {isDev && (
+        <DevPanel
+          store={devStore}
+          onStoreChange={(s) => {
+            setDevStore(s);
+            if (s === 'barber') setActiveDomain('barber');
+            else if (s === 'clothing') setActiveDomain('clothing');
+            else if (s === 'tattoo') setActiveDomain('tattoos');
+          }}
+          onLoadExampleData={() => reloadAppearancePayload(false)}
+          onResetData={handleResetData}
+        />
+      )}
+
+      {/* Floating Customization Popover (Colors, Opacity, Variations) */}
+      {isCustomizationOpen && customizationProps.hasCustomization && (
+        <GustaFloatingPopoverWrapper style={{ position: 'relative', left: 'auto', right: 'auto', marginRight: '16px', zIndex: 100 }}>
+          <GustaCustomizationPopover
+            hasMainColor={customizationProps.hasMainColor}
+            mainColor={customizationProps.mainColor}
+            onMainColorChange={customizationProps.onMainColorChange}
+            colorPickerType={customizationProps.colorPickerType}
+            hasSecondaryColor={customizationProps.hasSecondaryColor}
+            secondaryColor={customizationProps.secondaryColor}
+            onSecondaryColorChange={customizationProps.onSecondaryColorChange}
+            hasOpacity={customizationProps.hasOpacity}
+            opacity={customizationProps.opacity}
+            onOpacityChange={customizationProps.onOpacityChange}
+            hasVariation={customizationProps.hasVariation}
+            variation={customizationProps.variation}
+            maxVariation={customizationProps.maxVariation}
+            onVariationChange={customizationProps.onVariationChange}
+          />
+        </GustaFloatingPopoverWrapper>
+      )}
+
+      {/* Centered Luxury Card */}
+      <ClothStoreFloatingCard>
+        {/* Header with Camera < [🧍] > & Texture Variations < [🎨] > */}
+        <ClothStoreHeader
+          title={activeDomain === 'clothing' ? 'CLOTH STORE' : shopTitle}
+          cameraType={activeCamera}
+          onPrevCamera={handlePrevCamera}
+          onNextCamera={handleNextCamera}
+          onToggleCamera={handleToggleCamera}
+          hasCustomization={customizationProps.hasCustomization}
+          isCustomizationOpen={isCustomizationOpen}
+          onToggleCustomization={() => setIsCustomizationOpen(prev => !prev)}
+          onPrevVariation={handlePrevVariation}
+          onNextVariation={handleNextVariation}
+        />
+
+        {/* Optional Domain Tabs when multiple domains are available (e.g. Creator mode) */}
+        {availableDomains.length > 1 && (
+          <div style={{ padding: '6px 12px', background: 'rgba(15, 16, 20, 0.95)', borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+            <GustaDomainTabs>
+              {availableDomains.map(d => (
+                <GustaDomainTab
+                  key={d.id}
+                  $active={activeDomain === d.id}
+                  onClick={() => {
+                    setActiveDomain(d.id);
+                    if (d.id === 'clothing') setClothView('mosaic');
+                  }}
+                >
+                  {d.label}
+                </GustaDomainTab>
+              ))}
+            </GustaDomainTabs>
+          </div>
+        )}
+
+        {/* Card Body */}
+        <ClothStoreBody>
+          {activeDomain === 'clothing' && clothView === 'mosaic' ? (
+            <MosaicCategoryGrid
+              page={clothPage}
+              onSelectCategory={handleSelectMosaicCategory}
+              activeCategoryId={activeSubCategory}
             />
-            <Container>{renderCategoryContent()}</Container>
-          </ContentPanel>
-        </UnifiedShell>
-      </MainPanel>
+          ) : activeDomain === 'clothing' && clothView === 'detail' ? (
+            <ItemSelectionView
+              categoryTitle={activeCategoryTitle}
+              categoryIcon={currentCategoryObj?.icon}
+              totalItems={currentCategoryItemCount}
+              onBack={() => setClothView('mosaic')}
+              onSearchSubmit={handleSearchSubmit}
+            >
+              {renderGustaContent()}
+            </ItemSelectionView>
+          ) : (
+            <ItemSelectionView
+              categoryTitle={activeCategoryTitle}
+              categoryIcon={currentCategoryObj?.icon}
+              totalItems={currentCategoryItemCount}
+              onBack={() => setActiveDomain('clothing')}
+              onSearchSubmit={handleSearchSubmit}
+            >
+              {renderGustaContent()}
+            </ItemSelectionView>
+          )}
+        </ClothStoreBody>
+
+        {/* Footer Navigation (Pagination < 01 >, Voltar, Salvar & Floating A ⟲ D) */}
+        <ClothStoreFooter
+          page={clothPage}
+          onPageChange={setClothPage}
+          isDetailView={activeDomain === 'clothing' && clothView === 'detail'}
+          onBackToMosaic={() => setClothView('mosaic')}
+          onExit={handleExitModal}
+          onSave={handleSaveModal}
+          onRotateLeft={() => handleRotateStep(-15)}
+          onRotateRight={() => handleRotateStep(15)}
+        />
+      </ClothStoreFloatingCard>
     </Wrapper>
   );
 

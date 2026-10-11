@@ -1,34 +1,36 @@
 /**
- * Dark UI with a light-blue accent matching the server logo.
- * Surfaces mirror Mantine overrides in ox_lib/web/src/theme (e.g. modal rgba(20,20,20,0.96), #444 borders).
+ * Gusta Appearance 1:1 Theme
+ * Font: Montserrat
+ * Primary Accent: Yellow / Gold (230, 205, 0 / #E6CD00)
+ * Deep dark surfaces fading into the FiveM viewport
  */
 const defaultAppearanceTheme = {
-  id: 'default',
-  fontFamily: 'Nexa-Book',
+  id: 'gusta',
+  fontFamily: "'Montserrat', sans-serif",
 
   fontColor: '255, 255, 255',
   fontColorHover: '255, 255, 255',
-  /** Text/icons on accent-filled surfaces (solid blue buttons etc.) */
-  fontColorSelected: '13, 13, 13',
+  /** Text/icons on accent-filled surfaces (solid yellow buttons etc.) */
+  fontColorSelected: '17, 17, 17',
 
-  mutedTextColor: '160, 160, 160',
-  mutedTextColorSoft: '136, 136, 136',
+  mutedTextColor: '255, 255, 255, 0.7',
+  mutedTextColorSoft: '255, 255, 255, 0.4',
 
-  primaryBackground: '20, 20, 20',
-  secondaryBackground: '13, 13, 13',
-  surfaceBackground: '42, 42, 42',
-  surfaceBackgroundAlt: '20, 20, 20',
-  primaryBackgroundSelected: '51, 51, 51',
+  primaryBackground: '10, 10, 10',
+  secondaryBackground: '0, 0, 0',
+  surfaceBackground: '22, 22, 22',
+  surfaceBackgroundAlt: '10, 10, 10',
+  primaryBackgroundSelected: '230, 205, 0',
 
-  borderColor: '68, 68, 68',
-  borderColorSoft: '85, 85, 85',
+  borderColor: '230, 205, 0',
+  borderColorSoft: '230, 205, 0, 0.2',
 
-  accentColor: '66, 140, 255',
-  accentColorHover: '120, 176, 255',
+  accentColor: '230, 205, 0',
+  accentColorHover: '212, 188, 0',
 
-  borderRadius: '8px',
+  borderRadius: '5px',
   scaleOnHover: false,
-  sectionFontWeight: 'normal',
+  sectionFontWeight: '500',
   smoothBackgroundTransition: false,
 } as const;
 

@@ -66,7 +66,7 @@ function quoteUrlForCss(u: string): string {
 
 /** CSS snippets for `<body>` in dev vs prod. */
 export function getPreviewBodyBackgroundCss(): { dev: string; prod: string } {
-  const prod = 'background: transparent;';
+  const prod = 'background: transparent !important;';
 
   if (import.meta.env.PROD) {
     return { dev: prod, prod };

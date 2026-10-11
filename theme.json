@@ -1,7 +1,10 @@
 {
-  "accentColor": "66, 140, 255",
-  "accentColorHover": "120, 176, 255",
-  "primaryBackground": "20, 20, 20",
-  "secondaryBackground": "13, 13, 13",
-  "borderColor": "68, 68, 68"
+  "id": "gusta",
+  "accentColor": "230, 205, 0",
+  "accentColorHover": "212, 188, 0",
+  "primaryBackground": "10, 10, 10",
+  "secondaryBackground": "0, 0, 0",
+  "borderColor": "230, 205, 0",
+  "borderRadius": "5px",
+  "fontFamily": "'Montserrat', sans-serif"
 }

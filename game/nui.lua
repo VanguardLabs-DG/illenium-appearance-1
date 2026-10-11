@@ -170,6 +170,15 @@ RegisterNUICallback("appearance_rotate_ped", function(delta, cb)
     client.pedTurn(cache.ped, delta)
 end)
 
+-- Direct heading rotation from 0-360 slider (Gusta parity)
+RegisterNUICallback("appearance_set_heading", function(heading, cb)
+    cb(1)
+    local ped = cache.ped or PlayerPedId()
+    if DoesEntityExist(ped) then
+        SetEntityHeading(ped, (tonumber(heading) or 0.0) + 0.0)
+    end
+end)
+
 -- Colors are read straight from theme.json at the resource root — edit
 -- values there (RGB triplets like "66, 140, 255") and restart the resource,
 -- no code changes or rebuilding needed.

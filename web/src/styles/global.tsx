@@ -17,47 +17,49 @@ export default createGlobalStyle<{theme: any}>`
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    outline: 0;
     user-select: none;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  
-  body {
-    font-family: 'Nexa-Book', sans-serif;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+  }
+  
+  body,
+  h1, h2, h3, h4, h5, h6,
+  input, button, select, textarea, p, span, div, label {
+    font-family: 'Montserrat', sans-serif;
+  }
+
+  body {
+    width: 100%;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    position: relative;
     overflow: hidden;
     color: ${({ theme }) => `rgb(${theme.fontColor || '255, 255, 255'})`};
     
-    /* Dev mode background - Thomas boilerplate FiveM POV image (no dark overlay) */
+    /* Dev mode background */
     ${isDev ? previewBodyCssDev : previewBodyCssProd}
+
+    ::-webkit-scrollbar {
+      width: 2px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.3);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgb(${({ theme }) => theme.accentColor || '230, 205, 0'});
+      border-radius: 2px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgb(${({ theme }) => theme.accentColor || '230, 205, 0'});
+    }
   }
 
   button {
     cursor: pointer;
     outline: 0;
-    font-family: inherit;
-  }
-
-  input, select, textarea {
-    font-family: inherit;
-  }
-
-  p {
-    margin: 0;
-    padding: 0;
-    font-family: 'Nexa-Book', sans-serif;
-  }
-
-  ::-webkit-scrollbar {
-    display: none;
-    width: 0;
-    height: 0;
-  }
-
-  ::-webkit-scrollbar-track,
-  ::-webkit-scrollbar-thumb {
-    display: none;
   }
 `;

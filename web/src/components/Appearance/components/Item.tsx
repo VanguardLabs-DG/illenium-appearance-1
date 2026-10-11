@@ -1,6 +1,5 @@
 import styled from 'styled-components';
-import { ReactNode } from 'react';
-import { vp, vpClamp } from '../../../styles/scale';
+import React, { ReactNode } from 'react';
 
 interface ItemProps {
   title?: string;
@@ -9,34 +8,33 @@ interface ItemProps {
 
 const Container = styled.div`
   width: 100%;
-  border-bottom: ${({ theme }) => `1px solid rgba(${theme.borderColor || '44, 46, 51'}, 1)`};
+  border-bottom: 1px solid rgba(230, 205, 0, 0.2);
+  margin-bottom: 0.5rem;
 `;
 
 const Header = styled.div`
   width: 100%;
-  padding: ${vpClamp(12, 10, 16)} ${vpClamp(16, 12, 20)};
+  padding: 0.6rem 0.2rem 0.4rem 0.2rem;
   display: flex;
   align-items: center;
-  font-family: 'Nexa-Book', sans-serif;
+  font-family: 'Montserrat', sans-serif;
 
   span {
-    font-size: ${vpClamp(12, 11, 14)};
-    font-weight: 600;
-    letter-spacing: 0.04em;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 1px;
     text-transform: uppercase;
-    color: ${({ theme }) => `rgb(${theme.fontColor || '193, 194, 197'})`};
+    color: #e6cd00;
   }
 `;
 
 const Content = styled.div`
-  padding: ${vp(16)} ${vp(16)} ${vp(18)};
+  padding: 0.4rem 0.2rem 0.8rem 0.2rem;
   display: flex;
   flex-direction: column;
-  gap: ${vp(16)};
+  gap: 0.8rem;
 `;
 
-// No accordion here on purpose — every category's contents render at once
-// so the whole clothing menu is just one continuous scrollable list.
 const Item: React.FC<ItemProps> = ({ children, title }) => (
   <Container>
     {title && (

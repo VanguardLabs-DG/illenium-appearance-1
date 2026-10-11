@@ -38,6 +38,11 @@ local function SetupBlips()
 end
 
 function ResetBlips()
+    if SetupShopBlips then
+        SetupShopBlips()
+        return
+    end
+
     if Config.ShowNearestShopOnly then
         return
     end

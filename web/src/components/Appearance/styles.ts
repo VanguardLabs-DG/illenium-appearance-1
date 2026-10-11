@@ -9,14 +9,270 @@ export const Wrapper = styled.div`
   height: 100vh;
   width: 100vw;
   display: flex;
-  align-items: stretch;
+  align-items: center;
   justify-content: flex-end;
   overflow: hidden;
-  font-family: 'Nexa-Book', sans-serif;
-  cursor: grab;
-  
-  &:active {
-    cursor: grabbing;
+  font-family: 'Montserrat', sans-serif;
+  background: transparent !important;
+`;
+
+export const FullScreenOverlayWrapper = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  z-index: 1000;
+  font-family: 'Montserrat', sans-serif;
+  background: transparent !important;
+  user-select: none;
+`;
+
+export const ClothStoreFloatingCard = styled.div`
+  width: clamp(480px, 34vw, 550px);
+  max-width: 94vw;
+  max-height: 92vh;
+  background: rgba(14, 15, 20, 0.96);
+  border: 1.5px solid rgba(229, 192, 88, 0.45);
+  border-radius: 24px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.92), 0 0 32px rgba(229, 192, 88, 0.2);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  margin-right: clamp(24px, 3.5vw, 60px);
+  box-sizing: border-box;
+  animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(40px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @media (max-width: 1440px) {
+    width: clamp(440px, 35vw, 490px);
+    margin-right: clamp(16px, 2.5vw, 40px);
+  }
+
+  @media (max-width: 1024px) {
+    width: clamp(400px, 44vw, 450px);
+    margin-right: 16px;
+  }
+`;
+
+export const ClothStoreBody = styled.div`
+  width: 100%;
+  padding: 10px 14px 10px 14px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+  max-height: clamp(520px, 76vh, 690px);
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  &::-webkit-scrollbar {
+    width: 3px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(229, 192, 88, 0.35);
+    border-radius: 3px;
+  }
+`;
+
+export const GustaDrawer = styled.div`
+  background-image: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.95),
+    rgba(0, 0, 0, 0.8),
+    rgba(0, 0, 0, 0.7),
+    rgba(0, 0, 0, 0.6),
+    rgba(0, 0, 0, 0.4),
+    transparent
+  );
+  width: 40rem;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  z-index: 10;
+  box-sizing: border-box;
+
+  @media (max-width: 1280px) {
+    zoom: 0.85;
+  }
+  @media (max-width: 1024px) {
+    zoom: 0.72;
+  }
+  @media (max-width: 800px) {
+    zoom: 0.55;
+  }
+`;
+
+export const GustaContentWrapper = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 3rem 2.8rem 1.8rem 2.8rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+`;
+
+export const GustaWorkArea = styled.div`
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 1.2rem;
+  height: calc(100% - 110px);
+  margin-top: 0.8rem;
+  overflow: hidden;
+`;
+
+export const GustaContentColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0.5rem;
+  height: 100%;
+  overflow: hidden;
+`;
+
+export const GustaScrollArea = styled.div`
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  contain: content;
+
+  &::-webkit-scrollbar {
+    width: 2px;
+  }
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #e6cd00;
+  }
+`;
+
+export const GustaHeader = styled.div`
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+  flex-shrink: 0;
+`;
+
+export const GustaTitle = styled.h1`
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #ffffff;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 1.15rem;
+    background-color: #e6cd00;
+    border-radius: 2px;
+  }
+`;
+
+export const GustaDomainTabs = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.2rem;
+`;
+
+export const GustaDomainTab = styled.button<{ $active: boolean }>`
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 5px;
+  border: 1px solid ${({ $active }) => ($active ? '#e6cd00' : 'rgba(255, 255, 255, 0.12)')};
+  background: ${({ $active }) => ($active ? '#e6cd00' : 'rgba(0, 0, 0, 0.4)')};
+  color: ${({ $active }) => ($active ? '#111111' : 'rgba(255, 255, 255, 0.75)')};
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #e6cd00;
+    color: ${({ $active }) => ($active ? '#111111' : '#ffffff')};
+    background: ${({ $active }) => ($active ? '#ffea1e' : 'rgba(230, 205, 0, 0.2)')};
+  }
+`;
+
+export const GustaCategoryHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 0.5rem;
+  gap: 0.8rem;
+  flex-shrink: 0;
+`;
+
+export const GustaCategoryTitle = styled.span`
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #ffffff;
+  white-space: nowrap;
+`;
+
+export const GustaFloatingPopoverWrapper = styled.div`
+  position: absolute;
+  left: calc(100% + 1rem);
+  bottom: 2rem;
+  z-index: 999;
+  animation: fadeIn 0.15s ease-out;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 `;
 

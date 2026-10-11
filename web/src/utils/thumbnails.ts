@@ -108,7 +108,7 @@ if (typeof fetch === 'function') {
   fetch(CDN_MAP_URL)
     .then(res => (res.ok ? res.json() : {}))
     .then(data => {
-      cdnMap = data && typeof data === 'object' ? data : {};
+      cdnMap = data && typeof data === 'object' ? (data as Record<string, string>) : {};
       notifyCdnMapListeners();
     })
     .catch(() => {
@@ -129,6 +129,8 @@ export function useCdnMapVersion(): number {
   return version;
 }
 
+const GUSTA_CDN_BASE = 'https://pub-c1a252f6ec9346cc908eee23d922ae56.r2.dev';
+
 function buildThumbSegment(kind: ThumbKind, id: number): string {
   return kind === 'prop' ? `prop_${id}` : kind === 'overlay' ? `overlay_${id}` : `${id}`;
 }
@@ -136,10 +138,20 @@ function buildThumbSegment(kind: ThumbKind, id: number): string {
 export function buildThumbUrl(
   gender: ThumbGender,
   kind: ThumbKind,
-  id: number,
+  id: number | string,
   drawable: number,
 ): string {
-  const seg = buildThumbSegment(kind, id);
+  if (kind === 'prop') {
+    return `${GUSTA_CDN_BASE}/skinshop/${gender}/p${id}/${drawable}.jpg`;
+  }
+  if (kind === 'component') {
+    return `${GUSTA_CDN_BASE}/skinshop/${gender}/${id}/${drawable}.jpg`;
+  }
+  if (kind === 'overlay') {
+    return `${GUSTA_CDN_BASE}/barbershop/${gender}/${id}/${drawable}.jpg`;
+  }
+
+  const seg = buildThumbSegment(kind, Number(id) || 0);
   const key = `${gender}/${seg}/${drawable}`;
 
   const cdnUrl = cdnMap[key];

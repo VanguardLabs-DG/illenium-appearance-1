@@ -156,15 +156,23 @@ const SelectTattoo = ({
 }: SelectTattooProps) => {
   const defaultOpacity = 0.1;
   const selectRef = useRef<any>(null);
-  const [currentTattoo, setCurrentTattoo] = useState<Tattoo>(items[0]);
+  const [currentTattoo, setCurrentTattoo] = useState<Tattoo | undefined>(items?.[0]);
   const [opacity, setOpacity] = useState<number>(defaultOpacity);
-  const { label } = currentTattoo;
+
+  useEffect(() => {
+    if (items && items.length > 0) {
+      setCurrentTattoo(items[0]);
+    } else {
+      setCurrentTattoo(undefined);
+    }
+  }, [items]);
+
   const { locales } = useNuiState();
+  const label = currentTattoo?.label || '';
 
   const clientOpacity = useCallback(() => {
-    if (!tattoosApplied) return defaultOpacity;
+    if (!tattoosApplied || !currentTattoo) return defaultOpacity;
     const { name } = currentTattoo;
-    // eslint-disable-next-line no-plusplus
     for (let i = 0; i < tattoosApplied.length; i++) {
       const { name: nameApplied } = tattoosApplied[i];
       if (nameApplied === name) { 
@@ -179,8 +187,56 @@ const SelectTattoo = ({
     setOpacity(clientOpacity);
   }, [clientOpacity]);
 
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+
+  const currentTattooRef = useRef(currentTattoo);
+  currentTattooRef.current = currentTattoo;
+
+  const opacityRef = useRef(opacity);
+  opacityRef.current = opacity;
+
+  // Arrow keys navigation for tattoos:
+  // ArrowLeft / ArrowUp: Previous tattoo
+  // ArrowRight / ArrowDown: Next tattoo
+  useEffect(() => {
+    const handleTattooKeyDown = (e: KeyboardEvent) => {
+      const targetEl = e.target as HTMLElement | null;
+      const tag = targetEl?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || targetEl?.isContentEditable) return;
+
+      const key = e.key;
+      if (key !== 'ArrowUp' && key !== 'ArrowDown' && key !== 'ArrowLeft' && key !== 'ArrowRight') return;
+
+      const list = itemsRef.current;
+      if (!list || list.length === 0) return;
+
+      const cur = currentTattooRef.current;
+      const curIdx = cur ? list.findIndex(it => it.name === cur.name) : 0;
+      let nextIdx = curIdx === -1 ? 0 : curIdx;
+
+      if (key === 'ArrowLeft' || key === 'ArrowUp') {
+        if (nextIdx <= 0) return;
+        nextIdx -= 1;
+      } else if (key === 'ArrowRight' || key === 'ArrowDown') {
+        if (nextIdx >= list.length - 1) return;
+        nextIdx += 1;
+      }
+
+      if (nextIdx !== curIdx && nextIdx >= 0 && nextIdx < list.length) {
+        e.preventDefault();
+        const nextTattoo = list[nextIdx];
+        setCurrentTattoo(nextTattoo);
+        handlePreviewTattoo(nextTattoo, opacityRef.current);
+      }
+    };
+
+    window.addEventListener('keydown', handleTattooKeyDown);
+    return () => window.removeEventListener('keydown', handleTattooKeyDown);
+  }, [handlePreviewTattoo]);
+
   const handleChange = (event: any, { action }: any): void => {
-    if (action === 'select-option') {
+    if (action === 'select-option' && event?.value) {
       handlePreviewTattoo(event.value, opacity);
       setCurrentTattoo(event.value);
     }
@@ -188,12 +244,15 @@ const SelectTattoo = ({
 
   const handleChangeOpacity = useCallback((value : number) => {    
     setOpacity(value);
-    handlePreviewTattoo(currentTattoo, value);
+    if (currentTattoo) {
+      handlePreviewTattoo(currentTattoo, value);
+    }
   }, [currentTattoo]);
 
   const onMenuOpen = () => {
     setTimeout(() => {
-      const selectedEl = document.getElementsByClassName("TattooDropdown" + items[0].zone + "__option--is-selected")[0];
+      const zoneClass = items?.[0]?.zone ? "TattooDropdown" + items[0].zone + "__option--is-selected" : "__option--is-selected";
+      const selectedEl = document.getElementsByClassName(zoneClass)[0];
       if (selectedEl) {
         selectedEl.scrollIntoView({ behavior: 'auto', block: 'start', inline: 'nearest' });
       }
@@ -201,9 +260,8 @@ const SelectTattoo = ({
   };
 
   const isTattooApplied = useCallback(() => {
-    if (!tattoosApplied) return false;
+    if (!tattoosApplied || !currentTattoo) return false;
     const { name } = currentTattoo;
-    // eslint-disable-next-line no-plusplus
     for (let i = 0; i < tattoosApplied.length; i++) {
       const { name: nameApplied } = tattoosApplied[i];
       if (nameApplied === name) return true;
@@ -216,8 +274,19 @@ const SelectTattoo = ({
     return null;
   }
 
+  if (!items || items.length === 0 || !currentTattoo) {
+    return (
+      <Container>
+        <div style={{ color: '#888888', textAlign: 'center', padding: '1.5rem', fontSize: '0.85rem' }}>
+          Nenhuma tatuagem disponível nesta categoria.
+        </div>
+      </Container>
+    );
+  }
+
   const themeContext = useContext(ThemeContext);
   const customStyles = buildCustomStyles(themeContext);
+  const dropdownClass = "TattooDropdown" + (items[0]?.zone || "zone");
 
   return (
     <Container>
@@ -229,13 +298,13 @@ const SelectTattoo = ({
         value={{ value: currentTattoo, label }}
         onChange={handleChange}
         onMenuOpen={onMenuOpen}
-        className={"TattooDropdown" + items[0].zone}
-        classNamePrefix={"TattooDropdown" + items[0].zone}
+        className={dropdownClass}
+        classNamePrefix={dropdownClass}
         menuPortalTarget={document.body}
         menuShouldScrollIntoView={true}
       />
       <RangeInput
-        title={locales.tattoos.opacity}
+        title={locales.tattoos?.opacity || 'Opacidade'}
         min={settings.opacity.min}
         max={settings.opacity.max}
         factor={settings.opacity.factor}
@@ -246,11 +315,11 @@ const SelectTattoo = ({
       <ActionRow>
         {isTattooApplied ? (
           <ActionButton variant="secondary" onClick={() => handleDeleteTattoo(currentTattoo)}>
-            {locales.tattoos.delete}
+            {locales.tattoos?.delete || 'Remover'}
           </ActionButton>
         ) : (
           <ActionButton variant="primary" onClick={() => handleApplyTattoo(currentTattoo, opacity)}>
-            {locales.tattoos.apply}
+            {locales.tattoos?.apply || 'Aplicar'}
           </ActionButton>
         )}
       </ActionRow>
